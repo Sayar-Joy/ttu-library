@@ -1,0 +1,99 @@
+/* PreBook Page Styles */
+
+.pre-book-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.pre-book-main-content {
+  padding: 2rem;
+  margin: auto;
+  max-width: 1200px;
+  width: 100%;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 0 16px rgba(0, 0, 0, 0.1);
+  margin-top: 4rem;
+  margin-bottom: 4rem;
+}
+
+.pre-book-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.pre-book-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.pre-book-book-info {
+  text-align: center;
+}
+
+.pre-book-book-info h2 {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1B1C1D;
+}
+
+.pre-book-book-info p {
+  color: #666;
+  margin: 0.5rem 0;
+}
+
+.pre-book-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.btn-pre-book {
+  padding: 1rem 2rem;
+  font-size: 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.btn-pre-book:hover {
+  opacity: 0.9;
+}
+
+.success-message {
+  color: #00704B;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.error-message {
+  color: #E74C3C;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.retry-btn {
+  margin-top: 1rem;
+  padding: 0.8rem 1.5rem;
+  background: #366380;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+@media (max-width: 600px) {
+  .pre-book-main-content {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+}

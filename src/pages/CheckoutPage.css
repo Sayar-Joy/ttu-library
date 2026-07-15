@@ -1,0 +1,440 @@
+/* ============================================================
+   Checkout / Borrow Page Styles
+   ============================================================ */
+
+.checkout-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #F5F7FA;
+}
+
+.checkout-main-content {
+  max-width: 760px;
+  width: 100%;
+  margin: 3rem auto;
+  padding: 2.5rem 2.8rem;
+  background: #ffffff;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* ─── Header ─── */
+.checkout-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.checkout-header h1 {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1B1C1D;
+}
+
+.checkout-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #485E78;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.checkout-back-link:hover {
+  text-decoration: underline;
+}
+
+/* ─── Book Card ─── */
+.checkout-book-card {
+  display: flex;
+  gap: 1.8rem;
+  padding: 1.5rem 0;
+  border-bottom: 1px solid #E4E7EC;
+  margin-bottom: 1.5rem;
+}
+
+.checkout-cover-wrapper {
+  flex-shrink: 0;
+  width: 110px;
+  height: 152px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #485E78;
+  position: relative;
+}
+
+.checkout-cover-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.checkout-book-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.checkout-book-title {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1B1C1D;
+  margin: 0 0 4px 0;
+}
+
+.checkout-book-author {
+  font-size: 0.95rem;
+  color: #667085;
+  margin: 0 0 10px 0;
+}
+
+.checkout-meta-row {
+  display: flex;
+  gap: 1.2rem;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.checkout-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  color: #43474D;
+}
+
+.checkout-meta-item svg {
+  flex-shrink: 0;
+}
+
+.checkout-meta-label {
+  font-weight: 600;
+  color: #667085;
+}
+
+/* ─── Status Badge ─── */
+.checkout-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.status-available {
+  background: #ECFDF5;
+  color: #065F46;
+}
+
+.status-unavailable {
+  background: #FEF2F2;
+  color: #991B1B;
+}
+
+.status-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.dot-green {
+  background: #10B981;
+}
+
+.dot-red {
+  background: #EF4444;
+}
+
+/* ─── Copies Info ─── */
+.checkout-copies {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: #43474D;
+  margin-top: 10px;
+}
+
+.copies-available {
+  font-weight: 700;
+  color: #065F46;
+}
+
+.copies-sep {
+  color: #C4C6CD;
+}
+
+.copies-total {
+  font-weight: 600;
+}
+
+/* ─── Credits Info ─── */
+.checkout-credits {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 10px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+  color: #92400E;
+}
+
+.checkout-credits strong {
+  font-weight: 700;
+}
+
+/* ─── Borrow Cost ─── */
+.checkout-cost {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  border-radius: 10px;
+  margin-bottom: 1.2rem;
+  font-size: 0.9rem;
+  color: #0369A1;
+}
+
+.checkout-cost strong {
+  font-weight: 700;
+}
+
+/* ─── Actions ─── */
+.checkout-actions {
+  margin-top: 1.5rem;
+}
+
+.btn-borrow,
+.btn-reserve {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 14px 24px;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+}
+
+.btn-borrow {
+  background: #366380;
+  color: white;
+}
+
+.btn-borrow:hover:not(:disabled) {
+  background: #2A4F6A;
+}
+
+.btn-borrow:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-reserve {
+  background: #F0F9FF;
+  color: #366380;
+  border: 1.5px solid #BAE6FD;
+}
+
+.btn-reserve:hover:not(:disabled) {
+  background: #E0F2FE;
+}
+
+.btn-reserve:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ─── Messages ─── */
+.borrow-message {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin-top: 1rem;
+}
+
+.msg-success {
+  background: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+}
+
+.msg-error {
+  background: #FEF2F2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+}
+
+/* ─── Section Divider ─── */
+.checkout-divider {
+  height: 1px;
+  background: #E4E7EC;
+  margin: 1.2rem 0;
+}
+
+/* ─── Loading / Error States ─── */
+.checkout-loading,
+.checkout-error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.checkout-error-inner {
+  text-align: center;
+  padding: 40px;
+}
+
+.checkout-error-inner p {
+  margin-top: 12px;
+  color: #E74C3C;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.checkout-error-inner .retry-btn {
+  margin-top: 16px;
+  padding: 10px 24px;
+  background: #366380;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 600px) {
+  .checkout-main-content {
+    margin: 1rem;
+    padding: 1.5rem;
+  }
+
+  .checkout-book-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .checkout-cover-wrapper {
+    width: 90px;
+    height: 126px;
+  }
+}
+
+/* ─── QR Code Modal ─── */
+.qr-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.qr-modal-content {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  max-width: 400px;
+  width: 90%;
+  text-align: center;
+  position: relative;
+}
+
+.qr-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #667085;
+}
+
+.qr-modal-close:hover {
+  color: #1B1C1D;
+}
+
+.qr-code-container {
+  margin: 1.5rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.qr-image {
+  width: 200px;
+  height: 200px;
+  object-fit: contain;
+}
+
+.qr-info {
+  font-size: 0.9rem;
+  color: #43474D;
+  line-height: 1.6;
+  margin: 1rem 0;
+}
+
+/* ─── Credit Info ─── */
+.credit-info {
+  background: #F0F9FF;
+  border: 1px solid #BAE6FD;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-top: 1rem;
+}
+
+.credit-info h3 {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1B1C1D;
+  margin: 0 0 0.5rem 0;
+}
+
+.credit-info p {
+  font-size: 0.9rem;
+  color: #43474D;
+  margin: 0.3rem 0;
+}
+
+/* ─── Back Button ─── */
+.btn-back {
+  background: #F5F7FA;
+  color: #43474D;
+  border: 1px solid #E4E7EC;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-decoration: none;
+  display: inline-block;
+}
+
+.btn-back:hover {
+  background: #E4E7EC;
+  color: #1B1C1D;
+}
