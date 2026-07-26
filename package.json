@@ -9,6 +9,7 @@
     "preview": "vite preview",
     "server": "node server/index.js",
     "start": "node server/index.js",
+    "dev:all": "concurrently \"npm run server\" \"npm run dev\"",
     "seed:supabase": "node server/supabaseSeed.js",
     "migrate:old": "node server/migrate.js",
     "seed:old": "node server/seed.js"

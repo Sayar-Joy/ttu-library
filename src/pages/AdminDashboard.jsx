@@ -33,6 +33,8 @@ export default function AdminDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [toast, setToast] = useState(null);
   const [user, setUser] = useState(null);
+  const [showUnifiedModal, setShowUnifiedModal] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Overview stats
   const [stats, setStats] = useState({ students: 0, books: 0, copies: 0, activeBorrows: 0, unpaidFines: 0 });
@@ -181,14 +183,22 @@ export default function AdminDashboard() {
         </header>
 
         <div className="admin-content">
-          {activeTab === 'overview' && <OverviewTab stats={stats} setActiveTab={setActiveTab} />}
-          {activeTab === 'users' && <UsersTab showToast={showToast} />}
-          {activeTab === 'catalog' && <CatalogTab showToast={showToast} />}
-          {activeTab === 'inventory' && <InventoryTab showToast={showToast} />}
-          {activeTab === 'returns' && <ReturnsTab showToast={showToast} />}
-          {activeTab === 'fines' && <FinesTab showToast={showToast} />}
+          {activeTab === 'overview' && <OverviewTab stats={stats} setActiveTab={setActiveTab} setShowUnifiedModal={setShowUnifiedModal} />}
+          {activeTab === 'users' && <UsersTab showToast={showToast} refreshTrigger={refreshTrigger} />}
+          {activeTab === 'catalog' && <CatalogTab showToast={showToast} refreshTrigger={refreshTrigger} setShowUnifiedModal={setShowUnifiedModal} />}
+          {activeTab === 'inventory' && <InventoryTab showToast={showToast} refreshTrigger={refreshTrigger} setShowUnifiedModal={setShowUnifiedModal} />}
+          {activeTab === 'returns' && <ReturnsTab showToast={showToast} refreshTrigger={refreshTrigger} />}
+          {activeTab === 'fines' && <FinesTab showToast={showToast} refreshTrigger={refreshTrigger} />}
         </div>
       </main>
+
+      {showUnifiedModal && (
+        <UnifiedAddModal
+          onClose={() => setShowUnifiedModal(false)}
+          onSuccess={() => setRefreshTrigger(r => r + 1)}
+          showToast={showToast}
+        />
+      )}
 
       {/* Toast */}
       {toast && (
@@ -205,7 +215,7 @@ export default function AdminDashboard() {
 // ═══════════════════════════════════════════════════════════════
 // OVERVIEW TAB
 // ═══════════════════════════════════════════════════════════════
-function OverviewTab({ stats, setActiveTab }) {
+function OverviewTab({ stats, setActiveTab, setShowUnifiedModal }) {
   return (
     <>
       <div className="admin-stats-grid">
@@ -244,8 +254,7 @@ function OverviewTab({ stats, setActiveTab }) {
           <h3>🚀 Quick Actions</h3>
         </div>
         <div style={{ padding: '20px 22px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-          <button className="admin-btn-primary" onClick={() => setActiveTab('catalog')}>+ Add Book</button>
-          <button className="admin-btn-primary" onClick={() => setActiveTab('inventory')}>+ Add Copy</button>
+          <button className="admin-btn-primary" onClick={() => setShowUnifiedModal(true)}>+ Add Book / Copy</button>
           <button className="admin-btn-secondary" onClick={() => setActiveTab('returns')}>🔄 Process Return</button>
           <button className="admin-btn-secondary" onClick={() => setActiveTab('fines')}>💰 Manage Fines</button>
           <button className="admin-btn-secondary" onClick={() => setActiveTab('users')}>👥 View Students</button>
@@ -470,14 +479,10 @@ function UserDetailView({ data, onBack, showToast }) {
 // ═══════════════════════════════════════════════════════════════
 // CATALOG TAB (Add Books)
 // ═══════════════════════════════════════════════════════════════
-function CatalogTab({ showToast }) {
+function CatalogTab({ showToast, refreshTrigger, setShowUnifiedModal }) {
   const [books, setBooks] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [showModal, setShowModal] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: '', author: '', isbn: '', publisher: '', edition: '', publication_year: '', class_no: '', cover_url: '', category: '', review: '', total_pages: '', size: '', place_of_publication: '', is_translated: false, original_title: '', original_author: '', translator: '' });
-  const [uploadingCover, setUploadingCover] = useState(false);
 
   const fetchBooks = useCallback(async () => {
     setLoading(true);
@@ -488,54 +493,7 @@ function CatalogTab({ showToast }) {
     setLoading(false);
   }, [search]);
 
-  useEffect(() => { fetchBooks(); }, [fetchBooks]);
-
-  const handleAdd = async () => {
-    if (!form.title.trim() || !form.author.trim()) { showToast('Title and Author are required', 'error'); return; }
-    setSaving(true);
-    try {
-      const data = await apiFetch(`${API}/books`, {
-        method: 'POST',
-        body: JSON.stringify(form),
-      });
-      showToast(data.message || 'Book added!');
-      setShowModal(false);
-      setForm({ title: '', author: '', isbn: '', publisher: '', edition: '', publication_year: '', class_no: '', cover_url: '', category: '', review: '', total_pages: '', size: '', place_of_publication: '', is_translated: false, original_title: '', original_author: '', translator: '' });
-      fetchBooks();
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-    setSaving(false);
-  };
-
-  const handleCoverUpload = async (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-
-    setUploadingCover(true);
-    try {
-      const formData = new FormData();
-      formData.append('cover', file);
-
-      const stored = sessionStorage.getItem('ttu_session');
-      const token = stored ? JSON.parse(stored)?.access_token : null;
-
-      const res = await fetch(`/api/upload/book-cover`, {
-        method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Upload failed');
-      
-      setForm({ ...form, cover_url: data.data.publicUrl });
-      showToast('Cover uploaded successfully!');
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-    setUploadingCover(false);
-  };
+  useEffect(() => { fetchBooks(); }, [fetchBooks, refreshTrigger]);
 
   return (
     <>
@@ -547,7 +505,7 @@ function CatalogTab({ showToast }) {
               <span>🔍</span>
               <input placeholder="Search by title, author…" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
-            <button className="admin-btn-primary" onClick={() => setShowModal(true)}>+ Add Book</button>
+            <button className="admin-btn-primary" onClick={() => setShowUnifiedModal(true)}>+ Add Book / Copy</button>
           </div>
         </div>
 
@@ -577,119 +535,6 @@ function CatalogTab({ showToast }) {
         )}
       </div>
 
-      {/* Add Book Modal */}
-      {showModal && (
-        <div className="admin-modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="admin-modal" onClick={e => e.stopPropagation()}>
-            <div className="admin-modal-header">
-              <h3>📚 Add New Book</h3>
-              <button className="admin-modal-close" onClick={() => setShowModal(false)}>×</button>
-            </div>
-            <div className="admin-modal-body">
-              <div className="admin-form-group">
-                <label>Title *</label>
-                <input className="admin-form-input" placeholder="e.g. The Great Gatsby" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} />
-              </div>
-              <div className="admin-form-group">
-                <label>Author *</label>
-                <input className="admin-form-input" placeholder="e.g. F. Scott Fitzgerald" value={form.author} onChange={e => setForm({ ...form, author: e.target.value })} />
-              </div>
-              <div className="admin-form-row">
-                <div className="admin-form-group">
-                  <label>ISBN</label>
-                  <input className="admin-form-input" placeholder="e.g. 978-0-74-327356-5" value={form.isbn} onChange={e => setForm({ ...form, isbn: e.target.value })} />
-                </div>
-                <div className="admin-form-group">
-                  <label>Class No.</label>
-                  <input className="admin-form-input" placeholder="e.g. FIC-001" value={form.class_no} onChange={e => setForm({ ...form, class_no: e.target.value })} />
-                </div>
-              </div>
-              <div className="admin-form-row">
-                <div className="admin-form-group">
-                  <label>Publisher</label>
-                  <input className="admin-form-input" placeholder="e.g. Scribner" value={form.publisher} onChange={e => setForm({ ...form, publisher: e.target.value })} />
-                </div>
-                <div className="admin-form-group">
-                  <label>Edition</label>
-                  <input className="admin-form-input" placeholder="e.g. 1st" value={form.edition} onChange={e => setForm({ ...form, edition: e.target.value })} />
-                </div>
-              </div>
-              <div className="admin-form-row">
-                <div className="admin-form-group">
-                  <label>Publication Year</label>
-                  <input className="admin-form-input" type="number" placeholder="e.g. 2024" value={form.publication_year} onChange={e => setForm({ ...form, publication_year: e.target.value })} />
-                </div>
-                <div className="admin-form-group">
-                  <label>Cover URL</label>
-                  <div style={{ display: 'flex', gap: '0.5rem' }}>
-                    <input className="admin-form-input" placeholder="https://…" value={form.cover_url} onChange={e => setForm({ ...form, cover_url: e.target.value })} style={{ flex: 1 }} />
-                    <label className="admin-btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {uploadingCover ? '⏳' : '📁'} Upload
-                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCoverUpload} disabled={uploadingCover} />
-                    </label>
-                  </div>
-                </div>
-              </div>
-              <div className="admin-form-group">
-                <label>Category</label>
-                <input className="admin-form-input" placeholder="e.g. Fiction / Thriller" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} />
-              </div>
-              <div className="admin-form-group">
-                <label>Place of Publication</label>
-                <input className="admin-form-input" placeholder="e.g. New York, USA" value={form.place_of_publication} onChange={e => setForm({ ...form, place_of_publication: e.target.value })} />
-              </div>
-              <div className="admin-form-row">
-                <div className="admin-form-group">
-                  <label>Total Pages</label>
-                  <input className="admin-form-input" type="number" placeholder="e.g. 320" value={form.total_pages} onChange={e => setForm({ ...form, total_pages: e.target.value })} />
-                </div>
-                <div className="admin-form-group">
-                  <label>Size</label>
-                  <input className="admin-form-input" placeholder="e.g. 21 × 14 cm" value={form.size} onChange={e => setForm({ ...form, size: e.target.value })} />
-                </div>
-              </div>
-              <div className="admin-form-group">
-                <label>Review</label>
-                <textarea className="admin-form-input" placeholder="Brief review or description…" value={form.review} onChange={e => setForm({ ...form, review: e.target.value })} rows={3} style={{ resize: 'vertical' }} />
-              </div>
-
-              {/* ── Translation Section ── */}
-              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 8, paddingTop: 16 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: '#d1d5db', fontWeight: 500 }}>
-                  <input
-                    type="checkbox"
-                    checked={form.is_translated}
-                    onChange={e => setForm({ ...form, is_translated: e.target.checked, ...(!e.target.checked ? { original_title: '', original_author: '', translator: '' } : {}) })}
-                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
-                  />
-                  🌐 This book is a translation
-                </label>
-              </div>
-
-              {form.is_translated && (
-                <div style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 10, padding: 16, marginTop: 12 }}>
-                  <div className="admin-form-group">
-                    <label>Original Title</label>
-                    <input className="admin-form-input" placeholder="e.g. O Alquimista" value={form.original_title} onChange={e => setForm({ ...form, original_title: e.target.value })} />
-                  </div>
-                  <div className="admin-form-group">
-                    <label>Original Author</label>
-                    <input className="admin-form-input" placeholder="Author name in original language" value={form.original_author} onChange={e => setForm({ ...form, original_author: e.target.value })} />
-                  </div>
-                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
-                    <label>Translator</label>
-                    <input className="admin-form-input" placeholder="e.g. Alan R. Clarke" value={form.translator} onChange={e => setForm({ ...form, translator: e.target.value })} />
-                  </div>
-                </div>
-              )}
-            </div>
-            <div className="admin-modal-footer">
-              <button className="admin-btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
-              <button className="admin-btn-primary" onClick={handleAdd} disabled={saving}>{saving ? 'Saving…' : 'Add Book'}</button>
-            </div>
-          </div>
-        </div>
-      )}
     </>
   );
 }
@@ -697,18 +542,16 @@ function CatalogTab({ showToast }) {
 // ═══════════════════════════════════════════════════════════════
 // INVENTORY TAB (Physical Copies)
 // ═══════════════════════════════════════════════════════════════
-function InventoryTab({ showToast }) {
+function InventoryTab({ showToast, refreshTrigger, setShowUnifiedModal }) {
   const [copies, setCopies] = useState([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('');
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [showAddModal, setShowAddModal] = useState(false);
   const [showStatusModal, setShowStatusModal] = useState(null);
   const [newStatus, setNewStatus] = useState('');
   const [saving, setSaving] = useState(false);
-  const [addForm, setAddForm] = useState({ accession_no: '', book_id: '', date_acquired: '', price: '', how_obtained: '', remark: '' });
 
   const fetchInventory = useCallback(async () => {
     setLoading(true);
@@ -723,23 +566,7 @@ function InventoryTab({ showToast }) {
     setLoading(false);
   }, [statusFilter, search, page, showToast]);
 
-  useEffect(() => { fetchInventory(); }, [fetchInventory]);
-
-  const handleAddCopy = async () => {
-    if (!addForm.accession_no.trim() || !addForm.book_id.trim()) { showToast('Accession No and Book ID required', 'error'); return; }
-    setSaving(true);
-    try {
-      const data = await apiFetch(`${API}/physical-copies`, {
-        method: 'POST',
-        body: JSON.stringify(addForm),
-      });
-      showToast(data.message || 'Copy added!');
-      setShowAddModal(false);
-      setAddForm({ accession_no: '', book_id: '', date_acquired: '', price: '', how_obtained: '', remark: '' });
-      fetchInventory();
-    } catch (err) { showToast(err.message, 'error'); }
-    setSaving(false);
-  };
+  useEffect(() => { fetchInventory(); }, [fetchInventory, refreshTrigger]);
 
   const handleUpdateStatus = async () => {
     if (!newStatus) return;
@@ -774,7 +601,7 @@ function InventoryTab({ showToast }) {
               <option value="lost">Lost</option>
               <option value="maintenance">Maintenance</option>
             </select>
-            <button className="admin-btn-primary" onClick={() => setShowAddModal(true)}>+ Add Copy</button>
+            <button className="admin-btn-primary" onClick={() => setShowUnifiedModal(true)}>+ Add Book / Copy</button>
           </div>
         </div>
 
@@ -818,52 +645,6 @@ function InventoryTab({ showToast }) {
           </>
         )}
       </div>
-
-      {/* Add Copy Modal */}
-      {showAddModal && (
-        <div className="admin-modal-overlay" onClick={() => setShowAddModal(false)}>
-          <div className="admin-modal" onClick={e => e.stopPropagation()}>
-            <div className="admin-modal-header">
-              <h3>📦 Add Physical Copy</h3>
-              <button className="admin-modal-close" onClick={() => setShowAddModal(false)}>×</button>
-            </div>
-            <div className="admin-modal-body">
-              <div className="admin-form-row">
-                <div className="admin-form-group">
-                  <label>Accession No *</label>
-                  <input className="admin-form-input" placeholder="e.g. ACC-0001" value={addForm.accession_no} onChange={e => setAddForm({ ...addForm, accession_no: e.target.value })} />
-                </div>
-                <div className="admin-form-group">
-                  <label>Book ID (UUID) *</label>
-                  <input className="admin-form-input" placeholder="Paste book UUID" value={addForm.book_id} onChange={e => setAddForm({ ...addForm, book_id: e.target.value })} />
-                </div>
-              </div>
-              <div className="admin-form-row">
-                <div className="admin-form-group">
-                  <label>Date Acquired</label>
-                  <input className="admin-form-input" type="date" value={addForm.date_acquired} onChange={e => setAddForm({ ...addForm, date_acquired: e.target.value })} />
-                </div>
-                <div className="admin-form-group">
-                  <label>Price</label>
-                  <input className="admin-form-input" type="number" placeholder="e.g. 15000" value={addForm.price} onChange={e => setAddForm({ ...addForm, price: e.target.value })} />
-                </div>
-              </div>
-              <div className="admin-form-group">
-                <label>How Obtained</label>
-                <input className="admin-form-input" placeholder="e.g. Purchased, Donated" value={addForm.how_obtained} onChange={e => setAddForm({ ...addForm, how_obtained: e.target.value })} />
-              </div>
-              <div className="admin-form-group">
-                <label>Remark</label>
-                <input className="admin-form-input" placeholder="Optional notes…" value={addForm.remark} onChange={e => setAddForm({ ...addForm, remark: e.target.value })} />
-              </div>
-            </div>
-            <div className="admin-modal-footer">
-              <button className="admin-btn-secondary" onClick={() => setShowAddModal(false)}>Cancel</button>
-              <button className="admin-btn-primary" onClick={handleAddCopy} disabled={saving}>{saving ? 'Adding…' : 'Add Copy'}</button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Change Status Modal */}
       {showStatusModal && (
@@ -1094,6 +875,337 @@ function FinesTab({ showToast }) {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UNIFIED ADD BOOK / COPY MODAL
+// ═══════════════════════════════════════════════════════════════
+function UnifiedAddModal({ onClose, onSuccess, showToast }) {
+  const [mode, setMode] = useState('new_book'); // 'new_book' or 'existing_book'
+  const [saving, setSaving] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
+
+  // Book form state
+  const [bookForm, setBookForm] = useState({ title: '', author: '', isbn: '', publisher: '', edition: '', publication_year: '', class_no: '', cover_url: '', category: '', review: '', total_pages: '', size: '', place_of_publication: '', is_translated: false, original_title: '', original_author: '', translator: '' });
+  
+  // Copy form state
+  const [copyForm, setCopyForm] = useState({ accession_no: '', date_acquired: new Date().toISOString().split('T')[0], is_date_unknown: false, price: '', how_obtained: '', remark: '' });
+
+  // Existing book selection state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [selectedBook, setSelectedBook] = useState(null);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (mode !== 'existing_book') return;
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setSearching(true);
+      try {
+        const res = await fetch(`/api/books?search=${encodeURIComponent(searchQuery)}&limit=10`);
+        const data = await res.json();
+        setSearchResults(data.books || []);
+      } catch { /* silent */ }
+      setSearching(false);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery, mode]);
+
+  const handleSave = async () => {
+    if (!copyForm.accession_no.trim()) { showToast('Accession No is required', 'error'); return; }
+
+    setSaving(true);
+    try {
+      let bookIdToUse = null;
+
+      if (mode === 'new_book') {
+        if (!bookForm.title.trim() || !bookForm.author.trim()) {
+          showToast('Title and Author are required', 'error');
+          setSaving(false);
+          return;
+        }
+        
+        // 1. Create Book
+        const bookData = await apiFetch('/api/admin/books', {
+          method: 'POST',
+          body: JSON.stringify(bookForm),
+        });
+        bookIdToUse = bookData.book.id;
+      } else {
+        if (!selectedBook) {
+          showToast('Please select a book first', 'error');
+          setSaving(false);
+          return;
+        }
+        bookIdToUse = selectedBook.id;
+      }
+
+      // 2. Create Copy
+      await apiFetch('/api/admin/physical-copies', {
+        method: 'POST',
+        body: JSON.stringify({
+          ...copyForm,
+          date_acquired: copyForm.is_date_unknown ? null : copyForm.date_acquired,
+          book_id: bookIdToUse
+        }),
+      });
+
+      showToast(`Successfully added ${mode === 'new_book' ? 'book and ' : ''}copy!`);
+      onSuccess();
+      onClose();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    setSaving(false);
+  };
+  
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append('cover', file);
+
+      const stored = sessionStorage.getItem('ttu_session');
+      const token = stored ? JSON.parse(stored)?.access_token : null;
+
+      const res = await fetch(`/api/upload/book-cover`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Upload failed');
+      
+      setBookForm({ ...bookForm, cover_url: data.data.publicUrl });
+      showToast('Cover uploaded successfully!');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    setUploadingCover(false);
+  };
+
+  return (
+    <div className="admin-modal-overlay" onClick={onClose}>
+      <div className="admin-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 700, width: '90%', maxHeight: '90vh', overflowY: 'auto' }}>
+        <div className="admin-modal-header">
+          <h3>📚 Add Book / Copy</h3>
+          <button className="admin-modal-close" onClick={onClose}>×</button>
+        </div>
+        
+        <div className="admin-modal-body">
+          <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
+            <button 
+              className={mode === 'new_book' ? 'admin-btn-primary' : 'admin-btn-secondary'} 
+              onClick={() => setMode('new_book')}
+              style={{ flex: 1, padding: '10px' }}
+            >
+              Add New Book + Copy
+            </button>
+            <button 
+              className={mode === 'existing_book' ? 'admin-btn-primary' : 'admin-btn-secondary'} 
+              onClick={() => setMode('existing_book')}
+              style={{ flex: 1, padding: '10px' }}
+            >
+              Add Copy to Existing Book
+            </button>
+          </div>
+
+          {mode === 'new_book' ? (
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px', borderRadius: 12, marginBottom: 20 }}>
+               <h4 style={{ margin: '0 0 16px 0', color: '#fff', fontSize: 15 }}>📖 Book Details</h4>
+               
+               {/* ── Book Form Fields ── */}
+               <div className="admin-form-group">
+                 <label>Title *</label>
+                 <input className="admin-form-input" placeholder="e.g. The Great Gatsby" value={bookForm.title} onChange={e => setBookForm({ ...bookForm, title: e.target.value })} />
+               </div>
+               <div className="admin-form-group">
+                 <label>Author *</label>
+                 <input className="admin-form-input" placeholder="e.g. F. Scott Fitzgerald" value={bookForm.author} onChange={e => setBookForm({ ...bookForm, author: e.target.value })} />
+               </div>
+               <div className="admin-form-row">
+                 <div className="admin-form-group">
+                   <label>ISBN</label>
+                   <input className="admin-form-input" placeholder="e.g. 978-0-74-327356-5" value={bookForm.isbn} onChange={e => setBookForm({ ...bookForm, isbn: e.target.value })} />
+                 </div>
+                 <div className="admin-form-group">
+                   <label>Class No.</label>
+                   <input className="admin-form-input" placeholder="e.g. FIC-001" value={bookForm.class_no} onChange={e => setBookForm({ ...bookForm, class_no: e.target.value })} />
+                 </div>
+               </div>
+               <div className="admin-form-row">
+                 <div className="admin-form-group">
+                   <label>Publisher</label>
+                   <input className="admin-form-input" placeholder="e.g. Scribner" value={bookForm.publisher} onChange={e => setBookForm({ ...bookForm, publisher: e.target.value })} />
+                 </div>
+                 <div className="admin-form-group">
+                   <label>Edition</label>
+                   <input className="admin-form-input" placeholder="e.g. 1st" value={bookForm.edition} onChange={e => setBookForm({ ...bookForm, edition: e.target.value })} />
+                 </div>
+               </div>
+               <div className="admin-form-row">
+                 <div className="admin-form-group">
+                   <label>Publication Year</label>
+                   <input className="admin-form-input" type="number" placeholder="e.g. 2024" value={bookForm.publication_year} onChange={e => setBookForm({ ...bookForm, publication_year: e.target.value })} />
+                 </div>
+                 <div className="admin-form-group">
+                   <label>Cover URL</label>
+                   <div style={{ display: 'flex', gap: '0.5rem' }}>
+                     <input className="admin-form-input" placeholder="https://…" value={bookForm.cover_url} onChange={e => setBookForm({ ...bookForm, cover_url: e.target.value })} style={{ flex: 1 }} />
+                     <label className="admin-btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                       {uploadingCover ? '⏳' : '📁'} Upload
+                       <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCoverUpload} disabled={uploadingCover} />
+                     </label>
+                   </div>
+                 </div>
+               </div>
+               <div className="admin-form-group">
+                 <label>Category</label>
+                 <input className="admin-form-input" placeholder="e.g. Fiction / Thriller" value={bookForm.category} onChange={e => setBookForm({ ...bookForm, category: e.target.value })} />
+               </div>
+               <div className="admin-form-group">
+                 <label>Place of Publication</label>
+                 <input className="admin-form-input" placeholder="e.g. New York, USA" value={bookForm.place_of_publication} onChange={e => setBookForm({ ...bookForm, place_of_publication: e.target.value })} />
+               </div>
+               <div className="admin-form-row">
+                 <div className="admin-form-group">
+                   <label>Total Pages</label>
+                   <input className="admin-form-input" type="number" placeholder="e.g. 320" value={bookForm.total_pages} onChange={e => setBookForm({ ...bookForm, total_pages: e.target.value })} />
+                 </div>
+                 <div className="admin-form-group">
+                   <label>Size</label>
+                   <input className="admin-form-input" placeholder="e.g. 21 × 14 cm" value={bookForm.size} onChange={e => setBookForm({ ...bookForm, size: e.target.value })} />
+                 </div>
+               </div>
+               <div className="admin-form-group">
+                 <label>Review</label>
+                 <textarea className="admin-form-input" placeholder="Brief review or description…" value={bookForm.review} onChange={e => setBookForm({ ...bookForm, review: e.target.value })} rows={3} style={{ resize: 'vertical' }} />
+               </div>
+
+               {/* ── Translation Section ── */}
+               <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 8, paddingTop: 16 }}>
+                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: '#d1d5db', fontWeight: 500 }}>
+                   <input
+                     type="checkbox"
+                     checked={bookForm.is_translated}
+                     onChange={e => setBookForm({ ...bookForm, is_translated: e.target.checked, ...(!e.target.checked ? { original_title: '', original_author: '', translator: '' } : {}) })}
+                     style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                   />
+                   🌐 This book is a translation
+                 </label>
+               </div>
+
+               {bookForm.is_translated && (
+                 <div style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 10, padding: 16, marginTop: 12 }}>
+                   <div className="admin-form-group">
+                     <label>Original Title</label>
+                     <input className="admin-form-input" placeholder="e.g. O Alquimista" value={bookForm.original_title} onChange={e => setBookForm({ ...bookForm, original_title: e.target.value })} />
+                   </div>
+                   <div className="admin-form-group">
+                     <label>Original Author</label>
+                     <input className="admin-form-input" placeholder="Author name in original language" value={bookForm.original_author} onChange={e => setBookForm({ ...bookForm, original_author: e.target.value })} />
+                   </div>
+                   <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                     <label>Translator</label>
+                     <input className="admin-form-input" placeholder="e.g. Alan R. Clarke" value={bookForm.translator} onChange={e => setBookForm({ ...bookForm, translator: e.target.value })} />
+                   </div>
+                 </div>
+               )}
+            </div>
+          ) : (
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px', borderRadius: 12, marginBottom: 20 }}>
+               <h4 style={{ margin: '0 0 16px 0', color: '#fff', fontSize: 15 }}>🔍 Select Existing Book</h4>
+               <div className="admin-search-input" style={{ width: '100%', marginBottom: 12 }}>
+                 <span>🔍</span>
+                 <input 
+                   placeholder="Search book by title or author..." 
+                   value={searchQuery}
+                   onChange={e => { setSearchQuery(e.target.value); setSelectedBook(null); }}
+                 />
+               </div>
+               {selectedBook ? (
+                 <div style={{ padding: 12, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                   <div>
+                     <strong style={{ color: '#fff', display: 'block' }}>{selectedBook.title}</strong>
+                     <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>by {selectedBook.author}</span>
+                   </div>
+                   <button className="admin-btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => setSelectedBook(null)}>Change</button>
+                 </div>
+               ) : (
+                 <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                   {searching ? <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', padding: 8 }}>Searching...</p> : null}
+                   {!searching && searchResults.length === 0 && searchQuery.trim() && <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', padding: 8 }}>No books found.</p>}
+                   {searchResults.map(b => (
+                     <div 
+                       key={b.id} 
+                       style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
+                       onClick={() => setSelectedBook(b)}
+                       className="admin-nav-item"
+                     >
+                       <strong style={{ color: '#e5e7eb', fontSize: 14 }}>{b.title}</strong>
+                       <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>by {b.author}</span>
+                     </div>
+                   ))}
+                 </div>
+               )}
+            </div>
+          )}
+
+          <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px', borderRadius: 12 }}>
+            <h4 style={{ margin: '0 0 16px 0', color: '#fff', fontSize: 15 }}>📦 Copy Details</h4>
+            
+            <div className="admin-form-row">
+              <div className="admin-form-group">
+                <label>Accession No *</label>
+                <input className="admin-form-input" placeholder="e.g. ACC-0001" value={copyForm.accession_no} onChange={e => setCopyForm({ ...copyForm, accession_no: e.target.value })} />
+              </div>
+              <div className="admin-form-group">
+                <label>Date Acquired</label>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  <input className="admin-form-input" type="date" value={copyForm.date_acquired} onChange={e => setCopyForm({ ...copyForm, date_acquired: e.target.value })} disabled={copyForm.is_date_unknown} style={{ opacity: copyForm.is_date_unknown ? 0.5 : 1 }} />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: '#d1d5db' }}>
+                    <input type="checkbox" checked={copyForm.is_date_unknown} onChange={e => setCopyForm({ ...copyForm, is_date_unknown: e.target.checked })} style={{ accentColor: '#6366f1', width: 16, height: 16, cursor: 'pointer', margin: 0 }} />
+                    Unknown date (for old books)
+                  </label>
+                </div>
+              </div>
+            </div>
+            
+            <div className="admin-form-row">
+              <div className="admin-form-group">
+                <label>Price</label>
+                <input className="admin-form-input" type="number" placeholder="e.g. 15000" value={copyForm.price} onChange={e => setCopyForm({ ...copyForm, price: e.target.value })} />
+              </div>
+              <div className="admin-form-group">
+                <label>How Obtained</label>
+                <input className="admin-form-input" placeholder="e.g. Purchased, Donated" value={copyForm.how_obtained} onChange={e => setCopyForm({ ...copyForm, how_obtained: e.target.value })} />
+              </div>
+            </div>
+            
+            <div className="admin-form-group" style={{ marginBottom: 0 }}>
+              <label>Remark</label>
+              <input className="admin-form-input" placeholder="Optional notes…" value={copyForm.remark} onChange={e => setCopyForm({ ...copyForm, remark: e.target.value })} />
+            </div>
+          </div>
+        </div>
+
+        <div className="admin-modal-footer">
+          <button className="admin-btn-secondary" onClick={onClose}>Cancel</button>
+          <button className="admin-btn-primary" onClick={handleSave} disabled={saving || (mode === 'existing_book' && !selectedBook)}>
+            {saving ? 'Saving...' : (mode === 'new_book' ? 'Save Book & Copy' : 'Save Copy')}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
