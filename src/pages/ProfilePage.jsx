@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import './ProfilePage.css';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = '/api';
 
 function ProfilePage() {
   const { userId } = useParams();

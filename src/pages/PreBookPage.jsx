@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './PreBookPage.css';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = '/api';
 
 function PreBookPage() {
   const { bookId } = useParams();

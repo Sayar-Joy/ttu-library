@@ -476,7 +476,8 @@ function CatalogTab({ showToast }) {
   const [search, setSearch] = useState('');
   const [showModal, setShowModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ title: '', author: '', isbn: '', publisher: '', edition: '', publication_year: '', class_no: '', cover_url: '' });
+  const [form, setForm] = useState({ title: '', author: '', isbn: '', publisher: '', edition: '', publication_year: '', class_no: '', cover_url: '', category: '', review: '', total_pages: '', size: '', place_of_publication: '', is_translated: false, original_title: '', original_author: '', translator: '' });
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const fetchBooks = useCallback(async () => {
     setLoading(true);
@@ -499,12 +500,41 @@ function CatalogTab({ showToast }) {
       });
       showToast(data.message || 'Book added!');
       setShowModal(false);
-      setForm({ title: '', author: '', isbn: '', publisher: '', edition: '', publication_year: '', class_no: '', cover_url: '' });
+      setForm({ title: '', author: '', isbn: '', publisher: '', edition: '', publication_year: '', class_no: '', cover_url: '', category: '', review: '', total_pages: '', size: '', place_of_publication: '', is_translated: false, original_title: '', original_author: '', translator: '' });
       fetchBooks();
     } catch (err) {
       showToast(err.message, 'error');
     }
     setSaving(false);
+  };
+
+  const handleCoverUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingCover(true);
+    try {
+      const formData = new FormData();
+      formData.append('cover', file);
+
+      const stored = sessionStorage.getItem('ttu_session');
+      const token = stored ? JSON.parse(stored)?.access_token : null;
+
+      const res = await fetch(`/api/upload/book-cover`, {
+        method: 'POST',
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Upload failed');
+      
+      setForm({ ...form, cover_url: data.data.publicUrl });
+      showToast('Cover uploaded successfully!');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    setUploadingCover(false);
   };
 
   return (
@@ -528,14 +558,15 @@ function CatalogTab({ showToast }) {
         ) : (
           <div className="admin-table-wrapper">
             <table className="admin-table">
-              <thead><tr><th>Title</th><th>Author</th><th>ISBN</th><th>Publisher</th><th>Copies</th><th>Available</th></tr></thead>
+              <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>ISBN</th><th>Pages</th><th>Copies</th><th>Available</th></tr></thead>
               <tbody>
                 {books.map(b => (
                   <tr key={b.id}>
-                    <td style={{ maxWidth: 250, overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</td>
+                    <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</td>
                     <td>{b.author}</td>
+                    <td><span className="admin-badge borrowed" style={{ fontSize: 10 }}>{b.category || b.genre || '—'}</span></td>
                     <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{b.isbn || '—'}</td>
-                    <td>{b.publisher || '—'}</td>
+                    <td>{b.total_pages || '—'}</td>
                     <td><span className="admin-badge borrowed">{b.totalCopies}</span></td>
                     <td><span className={`admin-badge ${b.availableCopies > 0 ? 'available' : 'lost'}`}>{b.availableCopies}</span></td>
                   </tr>
@@ -590,9 +621,67 @@ function CatalogTab({ showToast }) {
                 </div>
                 <div className="admin-form-group">
                   <label>Cover URL</label>
-                  <input className="admin-form-input" placeholder="https://…" value={form.cover_url} onChange={e => setForm({ ...form, cover_url: e.target.value })} />
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input className="admin-form-input" placeholder="https://…" value={form.cover_url} onChange={e => setForm({ ...form, cover_url: e.target.value })} style={{ flex: 1 }} />
+                    <label className="admin-btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {uploadingCover ? '⏳' : '📁'} Upload
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCoverUpload} disabled={uploadingCover} />
+                    </label>
+                  </div>
                 </div>
               </div>
+              <div className="admin-form-group">
+                <label>Category</label>
+                <input className="admin-form-input" placeholder="e.g. Fiction / Thriller" value={form.category} onChange={e => setForm({ ...form, category: e.target.value })} />
+              </div>
+              <div className="admin-form-group">
+                <label>Place of Publication</label>
+                <input className="admin-form-input" placeholder="e.g. New York, USA" value={form.place_of_publication} onChange={e => setForm({ ...form, place_of_publication: e.target.value })} />
+              </div>
+              <div className="admin-form-row">
+                <div className="admin-form-group">
+                  <label>Total Pages</label>
+                  <input className="admin-form-input" type="number" placeholder="e.g. 320" value={form.total_pages} onChange={e => setForm({ ...form, total_pages: e.target.value })} />
+                </div>
+                <div className="admin-form-group">
+                  <label>Size</label>
+                  <input className="admin-form-input" placeholder="e.g. 21 × 14 cm" value={form.size} onChange={e => setForm({ ...form, size: e.target.value })} />
+                </div>
+              </div>
+              <div className="admin-form-group">
+                <label>Review</label>
+                <textarea className="admin-form-input" placeholder="Brief review or description…" value={form.review} onChange={e => setForm({ ...form, review: e.target.value })} rows={3} style={{ resize: 'vertical' }} />
+              </div>
+
+              {/* ── Translation Section ── */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 8, paddingTop: 16 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: '#d1d5db', fontWeight: 500 }}>
+                  <input
+                    type="checkbox"
+                    checked={form.is_translated}
+                    onChange={e => setForm({ ...form, is_translated: e.target.checked, ...(!e.target.checked ? { original_title: '', original_author: '', translator: '' } : {}) })}
+                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                  />
+                  🌐 This book is a translation
+                </label>
+              </div>
+
+              {form.is_translated && (
+                <div style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 10, padding: 16, marginTop: 12 }}>
+                  <div className="admin-form-group">
+                    <label>Original Title</label>
+                    <input className="admin-form-input" placeholder="e.g. O Alquimista" value={form.original_title} onChange={e => setForm({ ...form, original_title: e.target.value })} />
+                  </div>
+                  <div className="admin-form-group">
+                    <label>Original Author</label>
+                    <input className="admin-form-input" placeholder="Author name in original language" value={form.original_author} onChange={e => setForm({ ...form, original_author: e.target.value })} />
+                  </div>
+                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <label>Translator</label>
+                    <input className="admin-form-input" placeholder="e.g. Alan R. Clarke" value={form.translator} onChange={e => setForm({ ...form, translator: e.target.value })} />
+                  </div>
+                </div>
+              )}
             </div>
             <div className="admin-modal-footer">
               <button className="admin-btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>

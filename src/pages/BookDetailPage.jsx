@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import './BookDetailPage.css';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = '/api';
 
 const genreColors = {
   'Fiction': '#B0DDFE', 'Classic': 'rgba(143,111,70,0.9)', 'Science': '#B0DDFE',
@@ -216,15 +216,27 @@ function BookDetailPage() {
         <div className="bookdetail-body">
           {/* Left: Cover + Quick Info */}
           <div className="bookdetail-left">
-            <div className="bookdetail-cover" style={{ background: book.cover || '#485E78' }}>
-              <BookCoverLarge title={book.title} color={book.cover} />
-              <span className="bookdetail-genre-badge" style={{
-                background: genreColors[book.genre] || '#B0DDFE',
-                color: genreTextColors[book.genre] || '#35627E',
-              }}>
-                {book.genre}
-              </span>
-            </div>
+            {book.cover_url ? (
+              <div className="bookdetail-cover" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
+                <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <span className="bookdetail-genre-badge" style={{
+                  background: genreColors[book.genre] || '#B0DDFE',
+                  color: genreTextColors[book.genre] || '#35627E',
+                }}>
+                  {book.genre}
+                </span>
+              </div>
+            ) : (
+              <div className="bookdetail-cover" style={{ background: book.cover || '#485E78', position: 'relative' }}>
+                <BookCoverLarge title={book.title} color={book.cover} />
+                <span className="bookdetail-genre-badge" style={{
+                  background: genreColors[book.genre] || '#B0DDFE',
+                  color: genreTextColors[book.genre] || '#35627E',
+                }}>
+                  {book.genre}
+                </span>
+              </div>
+            )}
 
              <div className="bookdetail-quick-meta">
                <div className="meta-item">
@@ -316,8 +328,12 @@ function BookDetailPage() {
                 <div className="related-grid">
                   {related.map(r => (
                     <Link to={`/book/${r.id}`} className="related-card" key={r.id}>
-                      <div className="related-cover" style={{ background: r.cover || '#485E78' }}>
-                        <MiniCover title={r.title} />
+                      <div className="related-cover" style={{ background: r.cover || '#485E78', overflow: 'hidden', padding: r.cover_url ? 0 : undefined }}>
+                        {r.cover_url ? (
+                          <img src={r.cover_url} alt={r.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <MiniCover title={r.title} />
+                        )}
                       </div>
                       <div className="related-info">
                         <span className="related-title">{r.title}</span>

@@ -401,7 +401,7 @@ function FriendsPage() {
                         <div className="friend-actions">
                           <button 
                             className="friend-action-btn primary" 
-                            onClick={() => navigate(`/profile/${item.friend_id}`)}
+                            onClick={() => navigate(`/friend-profile/${item.friend_id}`)}
                           >
                             View Profile
                           </button>

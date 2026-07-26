@@ -8,6 +8,7 @@ import BookDetailPage from './pages/BookDetailPage';
 import CheckoutPage from './pages/CheckoutPage';
 import NotificationPage from './pages/NotificationPage';
 import FriendsPage from './pages/FriendsPage';
+import FriendProfilePage from './pages/FriendProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
 
 function App() {
@@ -21,6 +22,7 @@ function App() {
         <Route path="/mybooks/:userId" element={<MyBooksPage />} />
         <Route path="/notifications/:userId" element={<NotificationPage />} />
         <Route path="/friends/:userId" element={<FriendsPage />} />
+        <Route path="/friend-profile/:friendId" element={<FriendProfilePage />} />
         <Route path="/book/:bookId" element={<BookDetailPage />} />
         <Route path="/checkout/:bookId" element={<CheckoutPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

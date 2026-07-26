@@ -331,8 +331,14 @@ function BookshelfPage() {
                   {recommended.map(book => (
                     <Link to={`/book/${book.id}`} className="book-card recommended-book-card" key={book.id} style={{ textDecoration: 'none', color: 'inherit' }}>
                       <div className="book-card-cover-wrapper">
-                        <div className="book-card-cover-bg" style={{ background: book.cover || '#485E78' }} />
-                        <BookCoverSVG title={book.title} color={book.cover} />
+                        {book.cover_url ? (
+                          <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <>
+                            <div className="book-card-cover-bg" style={{ background: book.cover || '#485E78' }} />
+                            <BookCoverSVG title={book.title} color={book.cover} />
+                          </>
+                        )}
                         <div className="recommended-badge">★ {(4.5 + Math.random() * 0.3).toFixed(1)}</div>
                       </div>
                       <div className="book-card-info">
@@ -398,14 +404,20 @@ function BookshelfPage() {
                 {paginatedBooks.map(book => (
                   <Link to={`/book/${book.id}`} className="book-card" key={book.id} style={{ textDecoration: 'none', color: 'inherit' }}>
                     <div className="book-card-cover-wrapper">
-                      <div className="book-card-cover-bg" style={{ background: book.cover || '#485E78' }} />
+                      {book.cover_url ? (
+                        <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <>
+                          <div className="book-card-cover-bg" style={{ background: book.cover || '#485E78' }} />
+                          <BookCoverSVG title={book.title} color={book.cover} />
+                        </>
+                      )}
                       <span className="book-genre-badge" style={{
                         background: genreColors[book.genre] || '#B0DDFE',
                         color: genreTextColors[book.genre] || '#35627E',
                       }}>
                         {book.genre}
                       </span>
-                      <BookCoverSVG title={book.title} color={book.cover} />
                     </div>
                     <div className="book-card-info">
                       <h4 className="book-card-title">{book.title}</h4>

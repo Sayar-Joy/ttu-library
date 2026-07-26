@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import './MyBooksPage.css';
 
-const API_BASE = 'http://localhost:3001/api';
+const API_BASE = '/api';
 
 function MyBooksPage() {
   const { userId } = useParams();
@@ -257,8 +257,14 @@ function MyBooksPage() {
                     {borrowingBooks.map(book => (
                       <div key={book.transactionId || book.id} className="borrow-card">
                         <div className="borrow-card-cover">
-                          <div className="borrow-cover-bg" style={{ backgroundColor: book.cover || '#485E78' }} />
-                          <BookCoverSVG title={book.title} color={book.cover} />
+                          {book.cover_url ? (
+                            <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <>
+                              <div className="borrow-cover-bg" style={{ backgroundColor: book.cover || '#485E78' }} />
+                              <BookCoverSVG title={book.title} color={book.cover} />
+                            </>
+                          )}
                         </div>
                         <div className="borrow-card-body">
                           <div className="borrow-card-top">
@@ -312,9 +318,15 @@ function MyBooksPage() {
                     {favouriteBooks.map(book => (
                       <div key={book.id} className="mybook-card">
                         <div className="mybook-card-cover-wrapper">
-                          <div className="mybook-card-cover-bg" style={{ backgroundColor: book.cover || '#485E78' }} />
+                          {book.cover_url ? (
+                            <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <>
+                              <div className="mybook-card-cover-bg" style={{ backgroundColor: book.cover || '#485E78' }} />
+                              <BookCoverSVG title={book.title} color={book.cover} />
+                            </>
+                          )}
                           <span className="mybook-genre-badge-sm" style={{ background: genreColors[book.genre] || '#B0DDFE', color: genreTextColors[book.genre] || '#35627E' }}>{book.genre}</span>
-                          <BookCoverSVG title={book.title} color={book.cover} />
                           <div className="mybook-fav-indicator"><HeartFilledIcon /></div>
                         </div>
                         <div className="mybook-card-info"><h4 className="mybook-card-title">{book.title}</h4><p className="mybook-card-author">{book.author}</p></div>
@@ -343,9 +355,15 @@ function MyBooksPage() {
                       {finishedBooks.map(book => (
                         <div key={book.id} className="mybook-card completed">
                           <div className="mybook-card-cover-wrapper">
-                            <div className="mybook-card-cover-bg" style={{ backgroundColor: book.cover || '#485E78' }} />
+                            {book.cover_url ? (
+                              <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                            ) : (
+                              <>
+                                <div className="mybook-card-cover-bg" style={{ backgroundColor: book.cover || '#485E78' }} />
+                                <BookCoverSVG title={book.title} color={book.cover} />
+                              </>
+                            )}
                             <span className="mybook-card-check">✓</span>
-                            <BookCoverSVG title={book.title} color={book.cover} />
                           </div>
                           <div className="mybook-card-info"><h4 className="mybook-card-title">{book.title}</h4><p className="mybook-card-author">{book.author}</p><span className="mybook-card-genre-label">{book.genre}</span></div>
                         </div>

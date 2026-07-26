@@ -11,6 +11,7 @@ import * as friendshipService from './services/friendshipService.js';
 import { initNotificationCronJobs } from './cron/notificationJobs.js';
 import QRCode from 'qrcode';
 import adminRoutes from './routes/adminRoutes.js';
+import uploadRoutes from './routes/uploadRoutes.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -25,6 +26,11 @@ app.use(express.json());
 // Admin / Librarian Routes (protected by verifyLibrarian middleware)
 // ============================================================
 app.use('/api/admin', adminRoutes);
+
+// ============================================================
+// Upload Routes (image processing + Supabase Storage)
+// ============================================================
+app.use('/api/upload', uploadRoutes);
 
 // ============================================================
 // Auth Routes (Supabase Auth)
@@ -691,6 +697,63 @@ app.get('/api/users/search', async (req, res) => {
     res.json({ success: true, count: users.length, users });
   } catch (err) {
     console.error('Search users error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// ============================================================
+// Friend Public Profile (privacy-safe view)
+// ============================================================
+
+app.get('/api/friends/:friendId/public-profile', async (req, res) => {
+  try {
+    const { friendId } = req.params;
+
+    // Get the user (friend)
+    const user = await userService.getUserById(friendId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    // Get favourite books
+    const favouriteBooks = await userService.getUserFavorites(friendId);
+
+    // Get transaction history for borrowed & finished books
+    const history = await transactionService.getTransactionHistory(friendId);
+    const activeTransactions = await transactionService.getActiveTransactions(friendId);
+
+    // Currently borrowed books (active transactions)
+    const borrowedBooks = activeTransactions
+      .map(tx => tx.book)
+      .filter(Boolean);
+
+    // Finished books (progress === 100%)
+    const finishedBooks = history
+      .filter(tx => tx.progress_percentage === 100)
+      .map(tx => tx.book)
+      .filter(Boolean);
+
+    // Stats
+    const stats = await transactionService.getUserStats(friendId);
+
+    // Return ONLY public-safe data — no email, student_id, roll_number, join date
+    res.json({
+      success: true,
+      profile: {
+        name: user.name,
+        avatar_url: user.avatar_url,
+        // Only expose year portion of roll_number for "Class of 20XX"
+        roll_number: user.roll_number || null,
+        student_id: user.student_id || null,
+        totalBorrowed: stats.total_borrows || 0,
+        finishedCount: finishedBooks.length,
+        favouriteBooks: favouriteBooks || [],
+        borrowedBooks: borrowedBooks || [],
+        finishedBooks: finishedBooks || [],
+      }
+    });
+  } catch (err) {
+    console.error('Friend public profile error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });

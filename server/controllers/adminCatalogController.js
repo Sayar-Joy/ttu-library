@@ -36,6 +36,15 @@ export async function addBookRecord(req, res) {
       publication_year,
       class_no,
       cover_url,
+      category,
+      review,
+      total_pages,
+      size,
+      place_of_publication,
+      is_translated,
+      original_title,
+      original_author,
+      translator,
     } = req.body;
 
     // ── Validation ────────────────────────────────────────────
@@ -77,6 +86,15 @@ export async function addBookRecord(req, res) {
         publication_year: publication_year || null,
         class_no: class_no || null,
         cover_url: cover_url || null,
+        category: category || null,
+        review: review || null,
+        total_pages: total_pages || null,
+        size: size || null,
+        place_of_publication: place_of_publication || null,
+        is_translated: is_translated || false,
+        original_title: original_title || null,
+        original_author: original_author || null,
+        translator: translator || null,
       }])
       .select()
       .single();

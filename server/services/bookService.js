@@ -33,29 +33,11 @@ export async function getAllBooks(filters = {}) {
   const { data, error } = await query;
   if (error) throw error;
   
-  // Helper function to derive genre from class_no
-  const deriveGenre = (class_no) => {
-    if (!class_no) return 'Fiction';
-    const prefix = class_no.split('-')[0];
-    const genreMap = {
-      'FIC': 'Fiction',
-      'TEC': 'Technology',
-      'SCI': 'Science',
-      'DES': 'Design',
-      'HIS': 'History',
-      'SEL': 'Self-Help',
-      'PSY': 'Psychology',
-      'BIO': 'Memoir',
-      'BUS': 'Business',
-      'PHI': 'Philosophy'
-    };
-    return genreMap[prefix] || 'Fiction';
-  };
-
-  // Enrich books with availability data and genre (camelCase for JavaScript)
+  // Enrich books with availability data (camelCase for JavaScript)
+  // `category` is now stored directly in the DB instead of derived from class_no
   return data.map(book => ({
     ...book,
-    genre: deriveGenre(book.class_no),
+    genre: book.category || 'Uncategorized',
     cover: book.cover_url,
     year: book.publication_year,
     totalCopies: book.physical_copies.length,
@@ -102,7 +84,16 @@ export async function createBook(bookData) {
       publication_year: bookData.publication_year,
       class_no: bookData.class_no,
       isbn: bookData.isbn,
-      cover_url: bookData.cover_url
+      cover_url: bookData.cover_url,
+      category: bookData.category,
+      review: bookData.review,
+      total_pages: bookData.total_pages,
+      size: bookData.size,
+      place_of_publication: bookData.place_of_publication,
+      is_translated: bookData.is_translated || false,
+      original_title: bookData.original_title,
+      original_author: bookData.original_author,
+      translator: bookData.translator,
     }])
     .select()
     .single();
