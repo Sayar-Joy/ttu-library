@@ -4,6 +4,18 @@ import './AdminDashboard.css';
 
 const API = '/api/admin';
 
+// ─── Helper: to English Ordinal ─────────────────────────────
+function toEnglishOrdinal(num) {
+  const ordinals = ["", "first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth", "eleventh", "twelfth", "thirteenth", "fourteenth", "fifteenth", "sixteenth", "seventeenth", "eighteenth", "nineteenth", "twentieth"];
+  const n = parseInt(num, 10);
+  if (isNaN(n) || n <= 0) return "";
+  if (n < ordinals.length) return ordinals[n] + " edition";
+  const suffixes = ["th", "st", "nd", "rd"];
+  const v = n % 100;
+  const suffix = (v >= 11 && v <= 13) ? "th" : (suffixes[n % 10] || "th");
+  return n + suffix + " edition";
+}
+
 // ─── Helper: get auth token from session ────────────────────
 function getAuthHeaders() {
   const stored = sessionStorage.getItem('ttu_session');
@@ -889,7 +901,7 @@ function UnifiedAddModal({ onClose, onSuccess, showToast }) {
 
   // Book form state
   const [bookForm, setBookForm] = useState({ title: '', author: '', isbn: '', publisher: '', edition: '', publication_year: '', class_no: '', cover_url: '', category: '', review: '', total_pages: '', size: '', place_of_publication: '', is_translated: false, original_title: '', original_author: '', translator: '' });
-  
+
   // Copy form state
   const [copyForm, setCopyForm] = useState({ accession_no: '', date_acquired: new Date().toISOString().split('T')[0], is_date_unknown: false, price: '', how_obtained: '', remark: '' });
 
@@ -930,11 +942,15 @@ function UnifiedAddModal({ onClose, onSuccess, showToast }) {
           setSaving(false);
           return;
         }
-        
+
         // 1. Create Book
+        const payload = { ...bookForm };
+        if (payload.edition) {
+          payload.edition = toEnglishOrdinal(payload.edition) || payload.edition;
+        }
         const bookData = await apiFetch('/api/admin/books', {
           method: 'POST',
-          body: JSON.stringify(bookForm),
+          body: JSON.stringify(payload),
         });
         bookIdToUse = bookData.book.id;
       } else {
@@ -964,7 +980,7 @@ function UnifiedAddModal({ onClose, onSuccess, showToast }) {
     }
     setSaving(false);
   };
-  
+
   const handleCoverUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -985,7 +1001,7 @@ function UnifiedAddModal({ onClose, onSuccess, showToast }) {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Upload failed');
-      
+
       setBookForm({ ...bookForm, cover_url: data.data.publicUrl });
       showToast('Cover uploaded successfully!');
     } catch (err) {
@@ -1001,18 +1017,18 @@ function UnifiedAddModal({ onClose, onSuccess, showToast }) {
           <h3>📚 Add Book / Copy</h3>
           <button className="admin-modal-close" onClick={onClose}>×</button>
         </div>
-        
+
         <div className="admin-modal-body">
           <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
-            <button 
-              className={mode === 'new_book' ? 'admin-btn-primary' : 'admin-btn-secondary'} 
+            <button
+              className={mode === 'new_book' ? 'admin-btn-primary' : 'admin-btn-secondary'}
               onClick={() => setMode('new_book')}
               style={{ flex: 1, padding: '10px' }}
             >
               Add New Book + Copy
             </button>
-            <button 
-              className={mode === 'existing_book' ? 'admin-btn-primary' : 'admin-btn-secondary'} 
+            <button
+              className={mode === 'existing_book' ? 'admin-btn-primary' : 'admin-btn-secondary'}
               onClick={() => setMode('existing_book')}
               style={{ flex: 1, padding: '10px' }}
             >
@@ -1022,152 +1038,159 @@ function UnifiedAddModal({ onClose, onSuccess, showToast }) {
 
           {mode === 'new_book' ? (
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px', borderRadius: 12, marginBottom: 20 }}>
-               <h4 style={{ margin: '0 0 16px 0', color: '#fff', fontSize: 15 }}>📖 Book Details</h4>
-               
-               {/* ── Book Form Fields ── */}
-               <div className="admin-form-group">
-                 <label>Title *</label>
-                 <input className="admin-form-input" placeholder="e.g. The Great Gatsby" value={bookForm.title} onChange={e => setBookForm({ ...bookForm, title: e.target.value })} />
-               </div>
-               <div className="admin-form-group">
-                 <label>Author *</label>
-                 <input className="admin-form-input" placeholder="e.g. F. Scott Fitzgerald" value={bookForm.author} onChange={e => setBookForm({ ...bookForm, author: e.target.value })} />
-               </div>
-               <div className="admin-form-row">
-                 <div className="admin-form-group">
-                   <label>ISBN</label>
-                   <input className="admin-form-input" placeholder="e.g. 978-0-74-327356-5" value={bookForm.isbn} onChange={e => setBookForm({ ...bookForm, isbn: e.target.value })} />
-                 </div>
-                 <div className="admin-form-group">
-                   <label>Class No.</label>
-                   <input className="admin-form-input" placeholder="e.g. FIC-001" value={bookForm.class_no} onChange={e => setBookForm({ ...bookForm, class_no: e.target.value })} />
-                 </div>
-               </div>
-               <div className="admin-form-row">
-                 <div className="admin-form-group">
-                   <label>Publisher</label>
-                   <input className="admin-form-input" placeholder="e.g. Scribner" value={bookForm.publisher} onChange={e => setBookForm({ ...bookForm, publisher: e.target.value })} />
-                 </div>
-                 <div className="admin-form-group">
-                   <label>Edition</label>
-                   <input className="admin-form-input" placeholder="e.g. 1st" value={bookForm.edition} onChange={e => setBookForm({ ...bookForm, edition: e.target.value })} />
-                 </div>
-               </div>
-               <div className="admin-form-row">
-                 <div className="admin-form-group">
-                   <label>Publication Year</label>
-                   <input className="admin-form-input" type="number" placeholder="e.g. 2024" value={bookForm.publication_year} onChange={e => setBookForm({ ...bookForm, publication_year: e.target.value })} />
-                 </div>
-                 <div className="admin-form-group">
-                   <label>Cover URL</label>
-                   <div style={{ display: 'flex', gap: '0.5rem' }}>
-                     <input className="admin-form-input" placeholder="https://…" value={bookForm.cover_url} onChange={e => setBookForm({ ...bookForm, cover_url: e.target.value })} style={{ flex: 1 }} />
-                     <label className="admin-btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                       {uploadingCover ? '⏳' : '📁'} Upload
-                       <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCoverUpload} disabled={uploadingCover} />
-                     </label>
-                   </div>
-                 </div>
-               </div>
-               <div className="admin-form-group">
-                 <label>Category</label>
-                 <input className="admin-form-input" placeholder="e.g. Fiction / Thriller" value={bookForm.category} onChange={e => setBookForm({ ...bookForm, category: e.target.value })} />
-               </div>
-               <div className="admin-form-group">
-                 <label>Place of Publication</label>
-                 <input className="admin-form-input" placeholder="e.g. New York, USA" value={bookForm.place_of_publication} onChange={e => setBookForm({ ...bookForm, place_of_publication: e.target.value })} />
-               </div>
-               <div className="admin-form-row">
-                 <div className="admin-form-group">
-                   <label>Total Pages</label>
-                   <input className="admin-form-input" type="number" placeholder="e.g. 320" value={bookForm.total_pages} onChange={e => setBookForm({ ...bookForm, total_pages: e.target.value })} />
-                 </div>
-                 <div className="admin-form-group">
-                   <label>Size</label>
-                   <input className="admin-form-input" placeholder="e.g. 21 × 14 cm" value={bookForm.size} onChange={e => setBookForm({ ...bookForm, size: e.target.value })} />
-                 </div>
-               </div>
-               <div className="admin-form-group">
-                 <label>Review</label>
-                 <textarea className="admin-form-input" placeholder="Brief review or description…" value={bookForm.review} onChange={e => setBookForm({ ...bookForm, review: e.target.value })} rows={3} style={{ resize: 'vertical' }} />
-               </div>
+              <h4 style={{ margin: '0 0 16px 0', color: '#fff', fontSize: 15 }}>📖 Book Details</h4>
 
-               {/* ── Translation Section ── */}
-               <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 8, paddingTop: 16 }}>
-                 <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: '#d1d5db', fontWeight: 500 }}>
-                   <input
-                     type="checkbox"
-                     checked={bookForm.is_translated}
-                     onChange={e => setBookForm({ ...bookForm, is_translated: e.target.checked, ...(!e.target.checked ? { original_title: '', original_author: '', translator: '' } : {}) })}
-                     style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
-                   />
-                   🌐 This book is a translation
-                 </label>
-               </div>
+              {/* ── Book Form Fields ── */}
+              <div className="admin-form-group">
+                <label>Title *</label>
+                <input className="admin-form-input" placeholder="e.g. လင်္ကာဒီပချစ်သူ" value={bookForm.title} onChange={e => setBookForm({ ...bookForm, title: e.target.value })} />
+              </div>
+              <div className="admin-form-group">
+                <label>Author *</label>
+                <input className="admin-form-input" placeholder="e.g. ချစ်ဦးညို " value={bookForm.author} onChange={e => setBookForm({ ...bookForm, author: e.target.value })} />
+              </div>
+              <div className="admin-form-row">
+                <div className="admin-form-group">
+                  <label>ISBN</label>
+                  <input className="admin-form-input" placeholder="e.g. 978-0-74-327356-5" value={bookForm.isbn} onChange={e => setBookForm({ ...bookForm, isbn: e.target.value })} />
+                </div>
+                <div className="admin-form-group">
+                  <label>Class No.</label>
+                  <input className="admin-form-input" placeholder="e.g. ၈၉၅.၈" value={bookForm.class_no} onChange={e => setBookForm({ ...bookForm, class_no: e.target.value })} />
+                </div>
+              </div>
+              <div className="admin-form-row">
+                <div className="admin-form-group">
+                  <label>Publisher</label>
+                  <input className="admin-form-input" placeholder="e.g. စိတ်ကူးချိုချို" value={bookForm.publisher} onChange={e => setBookForm({ ...bookForm, publisher: e.target.value })} />
+                </div>
+                <div className="admin-form-group">
+                  <label>
+                    Edition
+                    {bookForm.edition && !isNaN(parseInt(bookForm.edition, 10)) && (
+                      <span style={{ fontSize: '0.85rem', color: '#a5b4fc', marginLeft: '8px', fontWeight: 'normal' }}>
+                        ({toEnglishOrdinal(bookForm.edition)})
+                      </span>
+                    )}
+                  </label>
+                  <input type="number" min="1" className="admin-form-input" placeholder="e.g. 1" value={bookForm.edition} onChange={e => setBookForm({ ...bookForm, edition: e.target.value })} />
+                </div>
+              </div>
+              <div className="admin-form-row">
+                <div className="admin-form-group">
+                  <label>Publication Year</label>
+                  <input className="admin-form-input" type="number" placeholder="e.g. ၂၀၀၈" value={bookForm.publication_year} onChange={e => setBookForm({ ...bookForm, publication_year: e.target.value })} />
+                </div>
+                <div className="admin-form-group">
+                  <label>Cover URL</label>
+                  <div style={{ display: 'flex', gap: '0.5rem' }}>
+                    <input className="admin-form-input" placeholder="https://…" value={bookForm.cover_url} onChange={e => setBookForm({ ...bookForm, cover_url: e.target.value })} style={{ flex: 1 }} />
+                    <label className="admin-btn-secondary" style={{ cursor: 'pointer', padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {uploadingCover ? '⏳' : '📁'} Upload
+                      <input type="file" accept="image/*" style={{ display: 'none' }} onChange={handleCoverUpload} disabled={uploadingCover} />
+                    </label>
+                  </div>
+                </div>
+              </div>
+              <div className="admin-form-group">
+                <label>Category</label>
+                <input className="admin-form-input" placeholder="e.g. Fiction / Thriller" value={bookForm.category} onChange={e => setBookForm({ ...bookForm, category: e.target.value })} />
+              </div>
+              <div className="admin-form-group">
+                <label>Place of Publication</label>
+                <input className="admin-form-input" placeholder="e.g. ရန်ကုန်" value={bookForm.place_of_publication} onChange={e => setBookForm({ ...bookForm, place_of_publication: e.target.value })} />
+              </div>
+              <div className="admin-form-row">
+                <div className="admin-form-group">
+                  <label>Total Pages</label>
+                  <input className="admin-form-input" type="number" placeholder="e.g. 320" value={bookForm.total_pages} onChange={e => setBookForm({ ...bookForm, total_pages: e.target.value })} />
+                </div>
+                <div className="admin-form-group">
+                  <label>Size(အလျားသာထည့်ရန် / cm)</label>
+                  <input className="admin-form-input" type="number" placeholder="e.g. 21" value={bookForm.size} onChange={e => setBookForm({ ...bookForm, size: e.target.value })} />
+                </div>
+              </div>
+              <div className="admin-form-group">
+                <label>Review</label>
+                <textarea className="admin-form-input" placeholder="Brief review or description…" value={bookForm.review} onChange={e => setBookForm({ ...bookForm, review: e.target.value })} rows={3} style={{ resize: 'vertical' }} />
+              </div>
 
-               {bookForm.is_translated && (
-                 <div style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 10, padding: 16, marginTop: 12 }}>
-                   <div className="admin-form-group">
-                     <label>Original Title</label>
-                     <input className="admin-form-input" placeholder="e.g. O Alquimista" value={bookForm.original_title} onChange={e => setBookForm({ ...bookForm, original_title: e.target.value })} />
-                   </div>
-                   <div className="admin-form-group">
-                     <label>Original Author</label>
-                     <input className="admin-form-input" placeholder="Author name in original language" value={bookForm.original_author} onChange={e => setBookForm({ ...bookForm, original_author: e.target.value })} />
-                   </div>
-                   <div className="admin-form-group" style={{ marginBottom: 0 }}>
-                     <label>Translator</label>
-                     <input className="admin-form-input" placeholder="e.g. Alan R. Clarke" value={bookForm.translator} onChange={e => setBookForm({ ...bookForm, translator: e.target.value })} />
-                   </div>
-                 </div>
-               )}
+              {/* ── Translation Section ── */}
+              <div style={{ borderTop: '1px solid rgba(255,255,255,0.06)', marginTop: 8, paddingTop: 16 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontSize: 13, color: '#d1d5db', fontWeight: 500 }}>
+                  <input
+                    type="checkbox"
+                    checked={bookForm.is_translated}
+                    onChange={e => setBookForm({ ...bookForm, is_translated: e.target.checked, ...(!e.target.checked ? { original_title: '', original_author: '', translator: '' } : {}) })}
+                    style={{ width: 18, height: 18, accentColor: '#6366f1', cursor: 'pointer' }}
+                  />
+                  🌐 This book is a translation
+                </label>
+              </div>
+
+              {bookForm.is_translated && (
+                <div style={{ background: 'rgba(99,102,241,0.05)', border: '1px solid rgba(99,102,241,0.15)', borderRadius: 10, padding: 16, marginTop: 12 }}>
+                  <div className="admin-form-group">
+                    <label>Original Title</label>
+                    <input className="admin-form-input" placeholder="e.g. O Alquimista" value={bookForm.original_title} onChange={e => setBookForm({ ...bookForm, original_title: e.target.value })} />
+                  </div>
+                  <div className="admin-form-group">
+                    <label>Original Author</label>
+                    <input className="admin-form-input" placeholder="Author name in original language" value={bookForm.original_author} onChange={e => setBookForm({ ...bookForm, original_author: e.target.value })} />
+                  </div>
+                  <div className="admin-form-group" style={{ marginBottom: 0 }}>
+                    <label>Translator</label>
+                    <input className="admin-form-input" placeholder="e.g. Alan R. Clarke" value={bookForm.translator} onChange={e => setBookForm({ ...bookForm, translator: e.target.value })} />
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px', borderRadius: 12, marginBottom: 20 }}>
-               <h4 style={{ margin: '0 0 16px 0', color: '#fff', fontSize: 15 }}>🔍 Select Existing Book</h4>
-               <div className="admin-search-input" style={{ width: '100%', marginBottom: 12 }}>
-                 <span>🔍</span>
-                 <input 
-                   placeholder="Search book by title or author..." 
-                   value={searchQuery}
-                   onChange={e => { setSearchQuery(e.target.value); setSelectedBook(null); }}
-                 />
-               </div>
-               {selectedBook ? (
-                 <div style={{ padding: 12, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                   <div>
-                     <strong style={{ color: '#fff', display: 'block' }}>{selectedBook.title}</strong>
-                     <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>by {selectedBook.author}</span>
-                   </div>
-                   <button className="admin-btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => setSelectedBook(null)}>Change</button>
-                 </div>
-               ) : (
-                 <div style={{ maxHeight: 200, overflowY: 'auto' }}>
-                   {searching ? <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', padding: 8 }}>Searching...</p> : null}
-                   {!searching && searchResults.length === 0 && searchQuery.trim() && <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', padding: 8 }}>No books found.</p>}
-                   {searchResults.map(b => (
-                     <div 
-                       key={b.id} 
-                       style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
-                       onClick={() => setSelectedBook(b)}
-                       className="admin-nav-item"
-                     >
-                       <strong style={{ color: '#e5e7eb', fontSize: 14 }}>{b.title}</strong>
-                       <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>by {b.author}</span>
-                     </div>
-                   ))}
-                 </div>
-               )}
+              <h4 style={{ margin: '0 0 16px 0', color: '#fff', fontSize: 15 }}>🔍 Select Existing Book</h4>
+              <div className="admin-search-input" style={{ width: '100%', marginBottom: 12 }}>
+                <span>🔍</span>
+                <input
+                  placeholder="Search book by title or author..."
+                  value={searchQuery}
+                  onChange={e => { setSearchQuery(e.target.value); setSelectedBook(null); }}
+                />
+              </div>
+              {selectedBook ? (
+                <div style={{ padding: 12, background: 'rgba(99,102,241,0.1)', border: '1px solid rgba(99,102,241,0.2)', borderRadius: 6, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <strong style={{ color: '#fff', display: 'block' }}>{selectedBook.title}</strong>
+                    <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)' }}>by {selectedBook.author}</span>
+                  </div>
+                  <button className="admin-btn-secondary" style={{ padding: '4px 8px', fontSize: 12 }} onClick={() => setSelectedBook(null)}>Change</button>
+                </div>
+              ) : (
+                <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+                  {searching ? <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', padding: 8 }}>Searching...</p> : null}
+                  {!searching && searchResults.length === 0 && searchQuery.trim() && <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', padding: 8 }}>No books found.</p>}
+                  {searchResults.map(b => (
+                    <div
+                      key={b.id}
+                      style={{ padding: '10px 12px', borderBottom: '1px solid rgba(255,255,255,0.05)', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}
+                      onClick={() => setSelectedBook(b)}
+                      className="admin-nav-item"
+                    >
+                      <strong style={{ color: '#e5e7eb', fontSize: 14 }}>{b.title}</strong>
+                      <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 13 }}>by {b.author}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )}
 
           <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', padding: '16px 20px', borderRadius: 12 }}>
             <h4 style={{ margin: '0 0 16px 0', color: '#fff', fontSize: 15 }}>📦 Copy Details</h4>
-            
+
             <div className="admin-form-row">
               <div className="admin-form-group">
                 <label>Accession No *</label>
-                <input className="admin-form-input" placeholder="e.g. ACC-0001" value={copyForm.accession_no} onChange={e => setCopyForm({ ...copyForm, accession_no: e.target.value })} />
+                <input className="admin-form-input" placeholder="e.g. မ-၀၁၀၈၅" value={copyForm.accession_no} onChange={e => setCopyForm({ ...copyForm, accession_no: e.target.value })} />
               </div>
               <div className="admin-form-group">
                 <label>Date Acquired</label>
@@ -1180,7 +1203,7 @@ function UnifiedAddModal({ onClose, onSuccess, showToast }) {
                 </div>
               </div>
             </div>
-            
+
             <div className="admin-form-row">
               <div className="admin-form-group">
                 <label>Price</label>
@@ -1191,7 +1214,7 @@ function UnifiedAddModal({ onClose, onSuccess, showToast }) {
                 <input className="admin-form-input" placeholder="e.g. Purchased, Donated" value={copyForm.how_obtained} onChange={e => setCopyForm({ ...copyForm, how_obtained: e.target.value })} />
               </div>
             </div>
-            
+
             <div className="admin-form-group" style={{ marginBottom: 0 }}>
               <label>Remark</label>
               <input className="admin-form-input" placeholder="Optional notes…" value={copyForm.remark} onChange={e => setCopyForm({ ...copyForm, remark: e.target.value })} />
