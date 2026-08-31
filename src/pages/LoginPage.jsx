@@ -1,9 +1,103 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import supabase from '../lib/supabase';
 import './LoginPage.css';
 
 function LoginPage() {
-  const [activeTab, setActiveTab] = useState('login');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  // Check existing session or handle OAuth callback
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkSessionAndSync() {
+      try {
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError) throw sessionError;
+
+        if (session?.user) {
+          setLoading(true);
+
+          // Sync Google OAuth user with database
+          const syncRes = await fetch('/api/auth/oauth-sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split('@')[0],
+              avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null
+            })
+          });
+
+          const syncData = await syncRes.json();
+          if (!syncRes.ok || !syncData.success) {
+            throw new Error(syncData.message || 'Failed to synchronize account.');
+          }
+
+          if (isMounted) {
+            sessionStorage.setItem('ttu_user', JSON.stringify(syncData.user));
+            sessionStorage.setItem('ttu_session', JSON.stringify(session));
+
+            if (syncData.user.role === 'librarian') {
+              navigate('/admin');
+            } else {
+              navigate('/bookshelf');
+            }
+          }
+        }
+      } catch (err) {
+        console.error('Session sync error:', err);
+        if (isMounted) {
+          setError(err.message || 'Error authenticating with Google. Please try again.');
+          setLoading(false);
+        }
+      }
+    }
+
+    checkSessionAndSync();
+
+    // Listen for auth state changes (e.g. after redirect)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        checkSessionAndSync();
+      }
+    });
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, [navigate]);
+
+  const handleGoogleLogin = async () => {
+    setError('');
+    setLoading(true);
+
+    try {
+      const { error: signInError } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/bookshelf`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+
+      if (signInError) throw signInError;
+    } catch (err) {
+      console.error('Google Sign In error:', err);
+      setError(err.message || 'Failed to initiate Google Sign In.');
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="auth-page">
@@ -12,10 +106,26 @@ function LoginPage() {
         <div className="auth-left-bg" />
         <div className="auth-left-overlay" />
         <div className="auth-left-content">
+          <div className="auth-university-tag">Taninthayi Technological University</div>
           <h1 className="auth-left-title">TTU Library</h1>
           <p className="auth-left-subtitle">
-            Your sanctuary for knowledge, research, and quiet<br />inspiration.
+            Your sanctuary for knowledge, research, and academic<br />inspiration.
           </p>
+
+          <div className="auth-feature-list">
+            <div className="auth-feature-item">
+              <span className="feature-icon">📚</span>
+              <span>Browse thousands of books and engineering references</span>
+            </div>
+            <div className="auth-feature-item">
+              <span className="feature-icon">🪪</span>
+              <span>Verified student membership & seamless checkouts</span>
+            </div>
+            <div className="auth-feature-item">
+              <span className="feature-icon">⚡</span>
+              <span>Fast one-click university Google authentication</span>
+            </div>
+          </div>
         </div>
         <div className="auth-left-badge">
           <svg width="28" height="24" viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -24,486 +134,85 @@ function LoginPage() {
         </div>
       </div>
 
-      {/* Right Side */}
+      {/* Right Side - Google OAuth Only */}
       <div className="auth-right">
         <div className="auth-right-inner">
-          <div className="auth-toggle">
-            <div className="auth-toggle-shadow" />
-            <button
-              className={`auth-toggle-btn ${activeTab === 'login' ? 'active' : ''}`}
-              onClick={() => setActiveTab('login')}
-            >
-              Login
-            </button>
-            <button
-              className={`auth-toggle-btn ${activeTab === 'register' ? 'active' : ''}`}
-              onClick={() => setActiveTab('register')}
-            >
-              Register
-            </button>
-          </div>
+          <div className="auth-card-box">
+            <div className="auth-portal-header">
+              <div className="auth-logo-badge">📖</div>
+              <h2 className="form-title">Student & Staff Portal</h2>
+              <p className="form-subtitle">
+                Sign in with your Google account to access your bookshelf and library services.
+              </p>
+            </div>
 
-          <div className="auth-form-container">
-            {activeTab === 'login' ? <LoginForm /> : <RegisterForm />}
+            {error && (
+              <div className="auth-error-banner">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="7" stroke="#E74C3C" strokeWidth="1.5"/>
+                  <path d="M8 5v3M8 10.5v.5" stroke="#E74C3C" strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                <span>{error}</span>
+              </div>
+            )}
+
+            <div className="oauth-action-container">
+              <button
+                type="button"
+                className="google-oauth-btn"
+                onClick={handleGoogleLogin}
+                disabled={loading}
+              >
+                {loading ? (
+                  <div className="oauth-loading-state">
+                    <span className="oauth-spinner" />
+                    <span>Connecting to Google…</span>
+                  </div>
+                ) : (
+                  <>
+                    <svg className="google-icon" width="20" height="20" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.25v3.15C3.26 21.36 7.33 24 12 24z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.28 14.27c-.25-.72-.38-1.49-.38-2.27s.13-1.55.38-2.27V6.58H1.25C.45 8.18 0 10.01 0 12s.45 3.82 1.25 5.42l4.03-3.15z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
+                      />
+                    </svg>
+                    <span>Continue with Google</span>
+                  </>
+                )}
+              </button>
+
+              <div className="oauth-security-note">
+                <span className="security-icon">🔒</span>
+                <span>Secure OAuth 2.0 single sign-on powered by Supabase Auth</span>
+              </div>
+            </div>
+
+            <div className="auth-membership-info-card">
+              <div className="info-card-badge">First Time Signing In?</div>
+              <p>
+                Your account will be created automatically. To borrow books, you'll simply fill out a quick membership verification form for the librarian to approve.
+              </p>
+            </div>
           </div>
 
           <div className="auth-footer">
-            <p>Need help? <a href="#" className="auth-footer-link">Contact Librarian</a></p>
+            <p>Need assistance? <a href="mailto:library@ttu.edu.mm" className="auth-footer-link">Contact Librarian Desk</a></p>
           </div>
         </div>
       </div>
     </div>
-  );
-}
-
-function LoginForm() {
-  const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(false);
-  const [identifier, setIdentifier] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    if (!identifier.trim() || !password.trim()) {
-      setError('Please enter both your student ID/email and password.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: identifier.trim(), password }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setError(data.message || 'Invalid credentials. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      // Store user and session in sessionStorage
-      sessionStorage.setItem('ttu_user', JSON.stringify(data.user));
-      if (data.session) {
-        sessionStorage.setItem('ttu_session', JSON.stringify(data.session));
-      }
-
-      // Route based on role: librarians → admin panel, students → bookshelf
-      if (data.user.role === 'librarian') {
-        navigate('/admin');
-      } else {
-        navigate('/bookshelf');
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError('Unable to connect to server. Please try again later.');
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form className="login-form" onSubmit={handleLogin}>
-      <div className="form-header">
-        <h2 className="form-title">Welcome Back</h2>
-        <p className="form-subtitle">
-          Please enter your student credentials to access your<br />portal.
-        </p>
-      </div>
-
-      {error && (
-        <div className="auth-error-banner">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="8" r="7" stroke="#E74C3C" strokeWidth="1.5"/>
-            <path d="M8 5v3M8 10.5v.5" stroke="#E74C3C" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-          <span>{error}</span>
-        </div>
-      )}
-
-      <div className="form-fields">
-        <div className="form-field">
-          <label className="form-label">Student ID or Email</label>
-          <div className="form-input-wrapper">
-            <div className="form-input-icon form-input-icon-left">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <circle cx="7" cy="4" r="3" stroke="#74777E" strokeWidth="1.5"/>
-                <path d="M2 12.5C2 10.0147 4.23858 8 7 8C9.76142 8 12 10.0147 12 12.5" stroke="#74777E" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <input
-              type="text"
-              className="form-input has-left-icon"
-              placeholder="e.g. 2024-STU-0891"
-              value={identifier}
-              onChange={e => setIdentifier(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Password</label>
-          <div className="form-input-wrapper">
-            <div className="form-input-icon form-input-icon-left">
-              <svg width="14" height="18" viewBox="0 0 14 18" fill="none">
-                <rect x="1" y="6" width="12" height="10" rx="2" stroke="#74777E" strokeWidth="1.5"/>
-                <path d="M4 6V4.5C4 2.84315 5.34315 1.5 7 1.5C8.65685 1.5 10 2.84315 10 4.5V6" stroke="#74777E" strokeWidth="1.5"/>
-              </svg>
-            </div>
-            <input
-              type={showPassword ? 'text' : 'password'}
-              className="form-input has-left-icon has-right-icon"
-              placeholder="••••••••"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-            />
-            <button type="button" className="form-input-icon form-input-icon-right" onClick={() => setShowPassword(!showPassword)} tabIndex={-1}>
-              <svg width="18" height="13" viewBox="0 0 18 13" fill="none">
-                <path d="M9 3.5C11.4853 3.5 13.5714 5.11111 16.5 6.5C13.5714 7.88889 11.4853 9.5 9 9.5C6.51472 9.5 4.42857 7.88889 1.5 6.5C4.42857 5.11111 6.51472 3.5 9 3.5Z" stroke="#74777E" strokeWidth="1.5"/>
-                <circle cx="9" cy="6.5" r="2" stroke="#74777E" strokeWidth="1.5"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-
-        <div className="form-row">
-          <label className="form-checkbox-label">
-            <div className={`form-checkbox ${rememberMe ? 'checked' : ''}`} onClick={() => setRememberMe(!rememberMe)}>
-              {rememberMe && (
-                <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                  <path d="M2.5 6L5 8.5L9.5 3.5" stroke="#366380" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                </svg>
-              )}
-            </div>
-            <span>Remember me</span>
-          </label>
-          <a href="#" className="form-link">Forgot Password?</a>
-        </div>
-
-        <button type="submit" className="form-submit-btn" disabled={loading}>
-          {loading ? 'Signing in...' : 'Sign In to OrionPax'}
-        </button>
-      </div>
-    </form>
-  );
-}
-
-function RegisterForm() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    year: '',
-    major: '',
-    studentNumber: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [rollNumber, setRollNumber] = useState('');
-  const navigate = useNavigate();
-
-  const yearOptions = [
-    { value: 'I', label: 'First Year (I)' },
-    { value: 'II', label: 'Second Year (II)' },
-    { value: 'III', label: 'Third Year (III)' },
-    { value: 'IV', label: 'Fourth Year (IV)' },
-    { value: 'V', label: 'Fifth Year (V)' },
-    { value: 'VI', label: 'Final Year (VI)' }
-  ];
-
-  const majorOptions = [
-    { value: 'Arch', label: 'Architecture (Arch)' },
-    { value: 'CIVIL', label: 'Civil Engineering (CIVIL)' },
-    { value: 'Mech', label: 'Mechanical Engineering (Mech)' },
-    { value: 'EC', label: 'Electronic Engineering (EC)' },
-    { value: 'EP', label: 'Electrical Power (EP)' },
-    { value: 'CEIT', label: 'Computer Engineering & IT (CEIT)' },
-    { value: 'Chem', label: 'Chemical Engineering (Chem)' },
-    { value: 'PE', label: 'Petroleum Engineering (PE)' },
-    { value: 'MC', label: 'Mechatronic Engineering (MC)' }
-  ];
-
-  // Calculate roll number whenever year, major, or studentNumber changes
-  React.useEffect(() => {
-    if (formData.year && formData.major && formData.studentNumber) {
-      setRollNumber(`${formData.year}-${formData.major}-${formData.studentNumber}`);
-    } else {
-      setRollNumber('');
-    }
-  }, [formData.year, formData.major, formData.studentNumber]);
-
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-
-    // Validation
-    if (!formData.name.trim()) {
-      setError('Please enter your full name.');
-      return;
-    }
-    if (!formData.email.trim()) {
-      setError('Please enter your email address.');
-      return;
-    }
-    if (!formData.year) {
-      setError('Please select your year.');
-      return;
-    }
-    if (!formData.major) {
-      setError('Please select your major.');
-      return;
-    }
-    if (!formData.studentNumber.trim()) {
-      setError('Please enter your student number.');
-      return;
-    }
-    if (!formData.password) {
-      setError('Please enter a password.');
-      return;
-    }
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match.');
-      return;
-    }
-    if (formData.password.length < 8) {
-      setError('Password must be at least 8 characters.');
-      return;
-    }
-
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          roll_number: rollNumber,
-          student_id: rollNumber, // Use roll_number as student_id
-          password: formData.password,
-          confirmPassword: formData.confirmPassword
-        })
-      });
-
-      const data = await res.json();
-
-      if (!res.ok || !data.success) {
-        setError(data.message || 'Registration failed. Please try again.');
-        setLoading(false);
-        return;
-      }
-
-      // Show success message and redirect to login
-      alert('Account created successfully! You can now log in.');
-      window.location.reload(); // Reload to show login tab
-    } catch (err) {
-      console.error('Registration error:', err);
-      setError('Unable to connect to server. Please try again later.');
-      setLoading(false);
-    }
-  };
-
-  return (
-    <form className="register-form" onSubmit={handleSubmit}>
-      <div className="form-header">
-        <h2 className="form-title">Create Account</h2>
-        <p className="form-subtitle">
-          Join the TTU Library community and access<br />thousands of resources.
-        </p>
-      </div>
-
-      {error && (
-        <div className="auth-error-banner">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <circle cx="8" cy="8" r="7" stroke="#E74C3C" strokeWidth="1.5"/>
-            <path d="M8 5v3M8 10.5v.5" stroke="#E74C3C" strokeWidth="1.5" strokeLinecap="round"/>
-          </svg>
-          <span>{error}</span>
-        </div>
-      )}
-
-      <div className="form-fields">
-        <div className="form-field">
-          <label className="form-label">Full Name</label>
-          <div className="form-input-wrapper">
-            <div className="form-input-icon form-input-icon-left">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <circle cx="7" cy="4" r="3" stroke="#74777E" strokeWidth="1.5"/>
-                <path d="M2 12.5C2 10.0147 4.23858 8 7 8C9.76142 8 12 10.0147 12 12.5" stroke="#74777E" strokeWidth="1.5" strokeLinecap="round"/>
-              </svg>
-            </div>
-            <input 
-              type="text" 
-              name="name"
-              className="form-input has-left-icon" 
-              placeholder="e.g. John Doe"
-              value={formData.name}
-              onChange={handleChange}
-            />
-          </div>
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Email</label>
-          <div className="form-input-wrapper">
-            <div className="form-input-icon form-input-icon-left">
-              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-                <rect x="1" y="2" width="12" height="10" rx="2" stroke="#74777E" strokeWidth="1.5"/>
-                <path d="M1 3L7 7.5L13 3" stroke="#74777E" strokeWidth="1.5"/>
-              </svg>
-            </div>
-            <input 
-              type="email" 
-              name="email"
-              className="form-input has-left-icon" 
-              placeholder="e.g. john@student.ttu.edu.mm"
-              value={formData.email}
-              onChange={handleChange}
-            />
-          </div>
-        </div>
-
-        <div className="form-row" style={{ display: 'flex', gap: '12px' }}>
-          <div className="form-field" style={{ flex: '1' }}>
-            <label className="form-label">Year</label>
-            <select 
-              name="year"
-              className="form-input"
-              value={formData.year}
-              onChange={handleChange}
-              style={{ 
-                padding: '10px 12px', 
-                border: '1px solid #E0E2E7',
-                borderRadius: '8px',
-                fontSize: '14px',
-                width: '100%'
-              }}
-            >
-              <option value="">Select Year</option>
-              {yearOptions.map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className="form-field" style={{ flex: '1' }}>
-            <label className="form-label">Major</label>
-            <select 
-              name="major"
-              className="form-input"
-              value={formData.major}
-              onChange={handleChange}
-              style={{ 
-                padding: '10px 12px', 
-                border: '1px solid #E0E2E7',
-                borderRadius: '8px',
-                fontSize: '14px',
-                width: '100%'
-              }}
-            >
-              <option value="">Select Major</option>
-              {majorOptions.map(option => (
-                <option key={option.value} value={option.value}>{option.label}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Student Number</label>
-          <div className="form-input-wrapper">
-            <input 
-              type="number" 
-              name="studentNumber"
-              className="form-input" 
-              placeholder="e.g. 1"
-              value={formData.studentNumber}
-              onChange={handleChange}
-              min="1"
-            />
-          </div>
-        </div>
-
-        {rollNumber && (
-          <div className="form-field">
-            <label className="form-label">Your Roll Number</label>
-            <div className="form-input-wrapper">
-              <input 
-                type="text" 
-                className="form-input" 
-                value={rollNumber}
-                disabled
-                style={{ 
-                  backgroundColor: '#f5f6f7',
-                  cursor: 'not-allowed',
-                  fontWeight: '600',
-                  color: '#366380'
-                }}
-              />
-            </div>
-          </div>
-        )}
-
-        <div className="form-field">
-          <label className="form-label">Password</label>
-          <div className="form-input-wrapper">
-            <div className="form-input-icon form-input-icon-left">
-              <svg width="14" height="18" viewBox="0 0 14 18" fill="none">
-                <rect x="1" y="6" width="12" height="10" rx="2" stroke="#74777E" strokeWidth="1.5"/>
-                <path d="M4 6V4.5C4 2.84315 5.34315 1.5 7 1.5C8.65685 1.5 10 2.84315 10 4.5V6" stroke="#74777E" strokeWidth="1.5"/>
-              </svg>
-            </div>
-            <input 
-              type="password" 
-              name="password"
-              className="form-input has-left-icon" 
-              placeholder="••••••••"
-              value={formData.password}
-              onChange={handleChange}
-            />
-          </div>
-        </div>
-
-        <div className="form-field">
-          <label className="form-label">Confirm Password</label>
-          <div className="form-input-wrapper">
-            <div className="form-input-icon form-input-icon-left">
-              <svg width="14" height="18" viewBox="0 0 14 18" fill="none">
-                <rect x="1" y="6" width="12" height="10" rx="2" stroke="#74777E" strokeWidth="1.5"/>
-                <path d="M4 6V4.5C4 2.84315 5.34315 1.5 7 1.5C8.65685 1.5 10 2.84315 10 4.5V6" stroke="#74777E" strokeWidth="1.5"/>
-              </svg>
-            </div>
-            <input 
-              type="password" 
-              name="confirmPassword"
-              className="form-input has-left-icon" 
-              placeholder="••••••••"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-            />
-          </div>
-        </div>
-
-        <button type="submit" className="form-submit-btn" disabled={loading}>
-          {loading ? 'Creating Account...' : 'Create Account'}
-        </button>
-      </div>
-    </form>
   );
 }
 

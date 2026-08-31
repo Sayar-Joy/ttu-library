@@ -3,6 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import './BookshelfPage.css';
 import { useNotifications } from '../hooks/useNotifications';
 import Sidebar from '../components/Sidebar';
+import MembershipModal from '../components/MembershipModal';
+import supabase from '../lib/supabase';
 
 function BookshelfPage() {
   const [activeNav, setActiveNav] = useState('bookshelf');
@@ -18,6 +20,8 @@ function BookshelfPage() {
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [userId, setUserId] = useState(null);
+  const [user, setUser] = useState(null);
+  const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
   const booksPerPage = 16;
   const navigate = useNavigate();
 
@@ -35,24 +39,66 @@ function BookshelfPage() {
   const handleNavClick = (id) => {
     setActiveNav(id);
     setSidebarOpen(false);
-    if (id === 'profile' || id === 'mybooks' || id === 'notifications' || id === 'friends') {
+    if (id === 'profile' || id === 'mybooks' || id === 'notifications' || id === 'friends' || id === 'ai') {
       const stored = sessionStorage.getItem('ttu_user');
       if (stored) {
         const u = JSON.parse(stored);
         navigate(`/${id}/${u.id}`);
+      } else {
+        navigate(`/${id}`);
       }
       return;
     }
-    if (id === 'logout') navigate('/');
+    if (id === 'logout') {
+      supabase.auth.signOut().catch(() => {});
+      sessionStorage.removeItem('ttu_user');
+      sessionStorage.removeItem('ttu_session');
+      navigate('/');
+    }
   };
 
-  // Get logged-in user for recommendations
+  // Get logged-in user and handle OAuth session synchronization
   useEffect(() => {
-    const storedUser = sessionStorage.getItem('ttu_user');
-    if (storedUser) {
-      const u = JSON.parse(storedUser);
-      setUserId(u.id);
+    async function initUserSession() {
+      // First check sessionStorage
+      const stored = sessionStorage.getItem('ttu_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        setUserId(u.id);
+        setUser(u);
+      }
+
+      // Check active Supabase session
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        try {
+          const syncRes = await fetch('/api/auth/oauth-sync', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`
+            },
+            body: JSON.stringify({
+              id: session.user.id,
+              email: session.user.email,
+              name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email.split('@')[0],
+              avatar_url: session.user.user_metadata?.avatar_url || session.user.user_metadata?.picture || null
+            })
+          });
+          const syncData = await syncRes.json();
+          if (syncData.success && syncData.user) {
+            sessionStorage.setItem('ttu_user', JSON.stringify(syncData.user));
+            sessionStorage.setItem('ttu_session', JSON.stringify(session));
+            setUserId(syncData.user.id);
+            setUser(syncData.user);
+          }
+        } catch (err) {
+          console.error('OAuth sync error in Bookshelf:', err);
+        }
+      }
     }
+
+    initUserSession();
   }, []);
 
   // Fetch all books and recommendations on mount
@@ -126,7 +172,7 @@ function BookshelfPage() {
   const genres = [...new Set(books.map(b => b.genre))].sort();
   const authors = [...new Set(books.map(b => b.author))].sort().slice(0, 8);
 
-  const categories = ['Fiction', 'Non-Fiction', 'Classic', 'Technology', 'Science', 'Design',
+  const categories = ['Thesis', 'Fiction', 'Non-Fiction', 'Classic', 'Technology', 'Science', 'Design',
     'History', 'Science Fiction', 'Self-Help', 'Psychology', 'Dystopian', 'Memoir',
     'Business', 'Productivity', 'Philosophy'];
 
@@ -155,6 +201,7 @@ function BookshelfPage() {
 
   // Generate a color for each genre
   const genreColors = {
+    'Thesis': '#D1FAE5',
     'Fiction': '#B0DDFE',
     'Classic': 'rgba(143, 111, 70, 0.9)',
     'Science': '#B0DDFE',
@@ -172,6 +219,7 @@ function BookshelfPage() {
   };
 
   const genreTextColors = {
+    'Thesis': '#047857',
     'Fiction': '#35627E',
     'Classic': '#FFFBFF',
     'Science': '#35627E',
@@ -302,11 +350,77 @@ function BookshelfPage() {
                 </span>
               )}
             </button>
-            <div className="header-avatar">
-              <div className="avatar-circle">AS</div>
+            <div className="header-avatar" onClick={() => userId && navigate(`/profile/${userId}`)} style={{ cursor: 'pointer' }}>
+              {user?.avatar_url && user.avatar_url.length > 2 ? (
+                <img src={user.avatar_url} alt={user.name} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover' }} />
+              ) : (
+                <div className="avatar-circle">{user?.avatar_url || (user?.name ? user.name.slice(0, 2).toUpperCase() : 'AS')}</div>
+              )}
             </div>
           </div>
         </header>
+
+        {/* Membership Status Banner */}
+        {user && user.role === 'student' && user.membership_status !== 'approved' && (
+          <div style={{
+            margin: '16px 24px 0',
+            padding: '14px 20px',
+            borderRadius: '12px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            background: user.membership_status === 'pending'
+              ? 'linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(120, 53, 15, 0.25))'
+              : user.membership_status === 'rejected'
+              ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(127, 29, 29, 0.25))'
+              : 'linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(67, 56, 202, 0.25))',
+            border: user.membership_status === 'pending'
+              ? '1px solid rgba(245, 158, 11, 0.35)'
+              : user.membership_status === 'rejected'
+              ? '1px solid rgba(239, 68, 68, 0.35)'
+              : '1px solid rgba(99, 102, 241, 0.35)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <span style={{ fontSize: '22px' }}>
+                {user.membership_status === 'pending' ? '⏳' : user.membership_status === 'rejected' ? '⚠️' : '🪪'}
+              </span>
+              <div>
+                <div style={{ fontWeight: 600, fontSize: '14px', color: '#1B1C1D' }}>
+                  {user.membership_status === 'pending'
+                    ? 'Library Membership Application Pending'
+                    : user.membership_status === 'rejected'
+                    ? 'Membership Application Needs Attention'
+                    : 'Library Membership Required to Borrow Books'}
+                </div>
+                <div style={{ fontSize: '12.5px', color: '#43474D', marginTop: '2px' }}>
+                  {user.membership_status === 'pending'
+                    ? 'Your application is under review by the librarian. You will be able to borrow books once approved.'
+                    : user.membership_status === 'rejected'
+                    ? 'Your application was rejected. Please review librarian notes and resubmit.'
+                    : 'Submit your student membership form to enable physical book checkouts.'}
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => setIsMembershipModalOpen(true)}
+              style={{
+                padding: '8px 16px',
+                fontSize: '13px',
+                fontWeight: 600,
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                background: user.membership_status === 'pending' ? '#d97706' : '#4f46e5',
+                color: '#fff',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+              }}
+            >
+              {user.membership_status === 'pending' ? 'View Status' : user.membership_status === 'rejected' ? 'Fix Application' : 'Apply for Membership'}
+            </button>
+          </div>
+        )}
 
         {/* Bookshelf Body — filters sidebar + book grid */}
         <div className="bookshelf-body">
@@ -401,30 +515,57 @@ function BookshelfPage() {
             {/* Book Cards Grid — 3 columns */}
             {paginatedBooks.length > 0 ? (
               <div className="books-grid">
-                {paginatedBooks.map(book => (
-                  <Link to={`/book/${book.id}`} className="book-card" key={book.id} style={{ textDecoration: 'none', color: 'inherit' }}>
-                    <div className="book-card-cover-wrapper">
-                      {book.cover_url ? (
-                        <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      ) : (
-                        <>
-                          <div className="book-card-cover-bg" style={{ background: book.cover || '#485E78' }} />
-                          <BookCoverSVG title={book.title} color={book.cover} />
-                        </>
-                      )}
-                      <span className="book-genre-badge" style={{
-                        background: genreColors[book.genre] || '#B0DDFE',
-                        color: genreTextColors[book.genre] || '#35627E',
-                      }}>
-                        {book.genre}
-                      </span>
-                    </div>
-                    <div className="book-card-info">
-                      <h4 className="book-card-title">{book.title}</h4>
-                      <p className="book-card-author">{book.author}</p>
-                    </div>
-                  </Link>
-                ))}
+                {paginatedBooks.map(book => {
+                  const isThesisBook = book.isThesis || book.genre === 'Thesis' || book.category === 'Thesis';
+                  return (
+                    <Link to={`/book/${book.id}`} className={`book-card ${isThesisBook ? 'thesis-book-card' : ''}`} key={book.id} style={{ textDecoration: 'none', color: 'inherit' }}>
+                      <div className="book-card-cover-wrapper">
+                        {book.cover_url ? (
+                          <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : isThesisBook ? (
+                          <div className="book-card-cover-bg" style={{ background: 'linear-gradient(135deg, #1e3a5f, #0f172a)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '12px', color: '#fff', textAlign: 'center' }}>
+                            <span style={{ fontSize: '28px', marginBottom: '6px' }}>🎓</span>
+                            <span style={{ fontSize: '11px', fontWeight: '700', color: '#38bdf8', letterSpacing: '0.5px' }}>TTU THESIS</span>
+                            <span style={{ fontSize: '10px', color: '#94a3b8', marginTop: '4px' }}>{book.major}</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="book-card-cover-bg" style={{ background: book.cover || '#485E78' }} />
+                            <BookCoverSVG title={book.title} color={book.cover} />
+                          </>
+                        )}
+                        <span className="book-genre-badge" style={{
+                          background: genreColors[book.genre] || (isThesisBook ? '#D1FAE5' : '#B0DDFE'),
+                          color: genreTextColors[book.genre] || (isThesisBook ? '#047857' : '#35627E'),
+                        }}>
+                          {isThesisBook ? '🎓 Thesis' : book.genre}
+                        </span>
+                        {isThesisBook && (
+                          <span className="thesis-preview-corner-badge">
+                            10p Preview
+                          </span>
+                        )}
+                      </div>
+                      <div className="book-card-info">
+                        <h4 className="book-card-title">{book.title}</h4>
+                        <p className="book-card-author">{book.author}</p>
+                        {isThesisBook && (
+                          <div className="thesis-card-meta-row" style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                            {book.major && (
+                              <span className="thesis-meta-pill major">{book.major}</span>
+                            )}
+                            {book.student_roll && (
+                              <span className="thesis-meta-pill roll">{book.student_roll}</span>
+                            )}
+                            {book.year && (
+                              <span className="thesis-meta-pill year">{book.year}</span>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                  );
+                })}
               </div>
             ) : (
               <div className="no-results">
@@ -487,6 +628,18 @@ function BookshelfPage() {
           </div>
         </footer>
       </div>
+
+      {/* Membership Modal */}
+      {user && (
+        <MembershipModal
+          isOpen={isMembershipModalOpen}
+          onClose={() => setIsMembershipModalOpen(false)}
+          user={user}
+          onSuccess={(updatedUser) => {
+            setUser(updatedUser);
+          }}
+        />
+      )}
     </div>
   );
 }

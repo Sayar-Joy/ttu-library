@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import MembershipModal from '../components/MembershipModal';
+import ThesisPdfViewer from '../components/ThesisPdfViewer';
 import './BookDetailPage.css';
 
 const API_BASE = '/api';
 
 const genreColors = {
+  'Thesis': '#D1FAE5',
   'Fiction': '#B0DDFE', 'Classic': 'rgba(143,111,70,0.9)', 'Science': '#B0DDFE',
   'Design': '#E8D5C4', 'History': '#C4B5FD', 'Science Fiction': '#FDE68A',
   'Self-Help': '#A7F3D0', 'Psychology': '#FECDD3', 'Dystopian': '#D1D5DB',
@@ -14,6 +17,7 @@ const genreColors = {
 };
 
 const genreTextColors = {
+  'Thesis': '#047857',
   'Fiction': '#35627E', 'Classic': '#FFFBFF', 'Science': '#35627E',
   'Design': '#8B6914', 'History': '#5B21B6', 'Science Fiction': '#92400E',
   'Self-Help': '#065F46', 'Psychology': '#9B1C1C', 'Dystopian': '#374151',
@@ -34,15 +38,23 @@ function BookDetailPage() {
   const [borrowing, setBorrowing] = useState(false);
   const [borrowMsg, setBorrowMsg] = useState('');
   const [isSaved, setIsSaved] = useState(false);
+  const [user, setUser] = useState(null);
+  const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
+  const [showThesisPdf, setShowThesisPdf] = useState(false);
 
   const closeSidebar = () => setSidebarOpen(false);
   const handleNavClick = (id) => {
     setActiveNav(id);
     setSidebarOpen(false);
     if (id === 'bookshelf') navigate('/bookshelf');
-    if (id === 'profile' || id === 'mybooks') {
+    if (id === 'profile' || id === 'mybooks' || id === 'notifications' || id === 'friends' || id === 'ai') {
       const stored = sessionStorage.getItem('ttu_user');
-      if (stored) { const u = JSON.parse(stored); navigate(`/${id}/${u.id}`); }
+      if (stored) {
+        const u = JSON.parse(stored);
+        navigate(`/${id}/${u.id}`);
+      } else {
+        navigate(`/${id}`);
+      }
       return;
     }
     if (id === 'logout') navigate('/');
@@ -94,9 +106,25 @@ function BookDetailPage() {
       });
   }, [bookId]);
 
+  useEffect(() => {
+    const stored = sessionStorage.getItem('ttu_user');
+    if (stored) {
+      setUser(JSON.parse(stored));
+    }
+  }, []);
+
   const handleBorrow = () => {
     const stored = sessionStorage.getItem('ttu_user');
     if (!stored) { navigate('/'); return; }
+    const u = JSON.parse(stored);
+    setUser(u);
+
+    // If student is not an approved member, open membership modal directly
+    if (u.role !== 'librarian' && u.membership_status !== 'approved') {
+      setIsMembershipModalOpen(true);
+      return;
+    }
+
     navigate(`/checkout/${book.id}`);
   };
 
@@ -239,35 +267,66 @@ function BookDetailPage() {
             )}
 
              <div className="bookdetail-quick-meta">
-               <div className="meta-item">
-                 <span className="meta-label">ISBN</span>
-                 <span className="meta-value">{book.isbn || 'N/A'}</span>
-               </div>
-               <div className="meta-item">
-                 <span className="meta-label">Published</span>
-                 <span className="meta-value">{book.year || '—'}</span>
-               </div>
-               <div className="meta-item">
-                 <span className="meta-label">Pages</span>
-                 <span className="meta-value">{book.pages || '—'}</span>
-               </div>
-               <div className="meta-item">
-                 <span className="meta-label">Copies</span>
-                 <span className="meta-value">
-                   <span className="copies-available">{book.availableCopies ?? 1}</span>
-                   <span className="copies-sep"> / </span>
-                   <span className="copies-total">{book.totalCopies ?? 1}</span>
-                   <span className="copies-label"> available</span>
-                 </span>
-               </div>
-               <div className="meta-item">
-                 <span className="meta-label">Saved</span>
-                 <span className="meta-value">{book.totalSaved ?? 0} times</span>
-               </div>
-               <div className="meta-item">
-                 <span className="meta-label">Finished</span>
-                 <span className="meta-value">{book.totalFinished ?? 0} times</span>
-               </div>
+               {(book.isThesis || book.genre === 'Thesis' || book.category === 'Thesis') ? (
+                 <>
+                   <div className="meta-item">
+                     <span className="meta-label">Major</span>
+                     <span className="meta-value" style={{ color: '#0284c7', fontWeight: 600 }}>{book.major || book.class_no || 'Engineering'}</span>
+                   </div>
+                   <div className="meta-item">
+                     <span className="meta-label">Student Roll</span>
+                     <span className="meta-value" style={{ fontFamily: 'monospace', fontWeight: 700, color: '#059669' }}>{book.student_roll || '—'}</span>
+                   </div>
+                   <div className="meta-item">
+                     <span className="meta-label">Year Done</span>
+                     <span className="meta-value">{book.year || '—'}</span>
+                   </div>
+                   <div className="meta-item">
+                     <span className="meta-label">Supervisor</span>
+                     <span className="meta-value">{book.supervisor || 'Faculty Advisor'}</span>
+                   </div>
+                   <div className="meta-item">
+                     <span className="meta-label">Total Pages</span>
+                     <span className="meta-value">{book.total_pages || 10} pages</span>
+                   </div>
+                   <div className="meta-item">
+                     <span className="meta-label">Preview</span>
+                     <span className="meta-value" style={{ color: '#059669', fontWeight: 600 }}>10 Pages Available</span>
+                   </div>
+                 </>
+               ) : (
+                 <>
+                   <div className="meta-item">
+                     <span className="meta-label">ISBN</span>
+                     <span className="meta-value">{book.isbn || 'N/A'}</span>
+                   </div>
+                   <div className="meta-item">
+                     <span className="meta-label">Published</span>
+                     <span className="meta-value">{book.year || '—'}</span>
+                   </div>
+                   <div className="meta-item">
+                     <span className="meta-label">Pages</span>
+                     <span className="meta-value">{book.pages || book.total_pages || '—'}</span>
+                   </div>
+                   <div className="meta-item">
+                     <span className="meta-label">Copies</span>
+                     <span className="meta-value">
+                       <span className="copies-available">{book.availableCopies ?? 1}</span>
+                       <span className="copies-sep"> / </span>
+                       <span className="copies-total">{book.totalCopies ?? 1}</span>
+                       <span className="copies-label"> available</span>
+                     </span>
+                   </div>
+                   <div className="meta-item">
+                     <span className="meta-label">Saved</span>
+                     <span className="meta-value">{book.totalSaved ?? 0} times</span>
+                   </div>
+                   <div className="meta-item">
+                     <span className="meta-label">Finished</span>
+                     <span className="meta-value">{book.totalFinished ?? 0} times</span>
+                   </div>
+                 </>
+               )}
              </div>
           </div>
 
@@ -275,39 +334,67 @@ function BookDetailPage() {
           <div className="bookdetail-right">
             <div className="bookdetail-title-row">
               <h1 className="bookdetail-title">{book.title}</h1>
-              <span className={`bookdetail-status-badge ${available ? 'status-available' : 'status-unavailable'}`}>
-                <span className={`status-dot ${available ? 'dot-green' : 'dot-red'}`} />
-                {available ? 'Available' : 'Unavailable'}
+              <span className={`bookdetail-status-badge ${(book.isThesis || book.genre === 'Thesis') ? 'status-available' : (available ? 'status-available' : 'status-unavailable')}`}>
+                <span className={`status-dot ${(book.isThesis || available) ? 'dot-green' : 'dot-red'}`} />
+                {(book.isThesis || book.genre === 'Thesis') ? '🎓 Thesis' : (available ? 'Available' : 'Unavailable')}
               </span>
             </div>
-            <p className="bookdetail-author">by <strong>{book.author}</strong></p>
+            <p className="bookdetail-author">by <strong>{book.author}</strong> {book.student_roll ? `(${book.student_roll})` : ''}</p>
 
             <div className="bookdetail-divider" />
 
             {/* Synopsis */}
             <div className="bookdetail-section">
-              <h3 className="section-heading">About This Book</h3>
+              <h3 className="section-heading">{(book.isThesis || book.genre === 'Thesis') ? 'Thesis Abstract & Summary' : 'About This Book'}</h3>
               <p className="bookdetail-synopsis">
-                {book.description || `${book.title} is a ${book.genre?.toLowerCase() || 'literary'} work by ${book.author}, published in ${book.year}. This title is part of the TTU Library collection and is ${available ? 'currently available for borrowing' : 'currently checked out'}.`}
+                {book.description || book.review || `${book.title} is a ${book.genre?.toLowerCase() || 'academic'} work by ${book.author}, published in ${book.year}. This title is part of the TTU Library collection.`}
               </p>
             </div>
 
             {/* Action Buttons */}
             <div className="bookdetail-actions">
-              {available ? (
-                <button className="btn-borrow" onClick={handleBorrow} disabled={borrowing}>
-                  {borrowing ? 'Borrowing...' : 'Borrow This Book'}
-                </button>
-              ) : (
-                <button className="btn-reserve" disabled>
-                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                    <rect x="3" y="1" width="12" height="16" rx="2" stroke="currentColor" strokeWidth="1.5"/>
-                    <path d="M6 7L9 4L12 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
-                    <line x1="9" y1="4.5" x2="9" y2="13" stroke="currentColor" strokeWidth="1.2"/>
-                  </svg>
-                  Reserve (Coming Soon)
+              {(book.isThesis || book.genre === 'Thesis' || book.preview_pdf_url || book.pdf_url) && (
+                <button
+                  className="btn-read-thesis-action"
+                  onClick={() => setShowThesisPdf(true)}
+                  style={{
+                    background: 'linear-gradient(135deg, #059669, #10b981)',
+                    color: '#ffffff',
+                    border: 'none',
+                    padding: '12px 24px',
+                    borderRadius: '12px',
+                    fontSize: '15px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(16, 185, 129, 0.35)',
+                    transition: 'all 0.2s ease',
+                  }}
+                >
+                  <span style={{ fontSize: '18px' }}>📖</span>
+                  <span>Read Thesis Preview (First 10 Pages)</span>
                 </button>
               )}
+
+              {!(book.isThesis || book.genre === 'Thesis') && (
+                available ? (
+                  <button className="btn-borrow" onClick={handleBorrow} disabled={borrowing}>
+                    {borrowing ? 'Processing...' : 'Request to Borrow 📥'}
+                  </button>
+                ) : (
+                  <button className="btn-reserve" disabled>
+                    <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                      <rect x="3" y="1" width="12" height="16" rx="2" stroke="currentColor" strokeWidth="1.5"/>
+                      <path d="M6 7L9 4L12 7" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/>
+                      <line x1="9" y1="4.5" x2="9" y2="13" stroke="currentColor" strokeWidth="1.2"/>
+                    </svg>
+                    Reserve (Coming Soon)
+                  </button>
+                )
+              )}
+
               <button className="btn-bookmark" onClick={handleSaveToggle}>
                 <svg width="20" height="18" viewBox="0 0 20 19" fill={isSaved ? '#FF6B6B' : 'none'} stroke={isSaved ? '#FF6B6B' : '#43474D'} strokeWidth="1.5" strokeLinejoin="round">
                   <path d="M1 1V18.35L10 14L19 18.35V1H1Z" />
@@ -360,6 +447,38 @@ function BookDetailPage() {
           </div>
         </footer>
       </div>
+
+      {/* 10-Page Thesis PDF Viewer Modal */}
+      {showThesisPdf && (
+        <ThesisPdfViewer
+          isModal={true}
+          onClose={() => setShowThesisPdf(false)}
+          pdfUrl={book.pdf_url}
+          previewPdfUrl={book.preview_pdf_url}
+          title={book.title}
+          author={book.author}
+          studentRoll={book.student_roll}
+          major={book.major}
+          year={book.year}
+          totalPages={book.total_pages || 10}
+          previewPagesCount={book.preview_pages_count || 10}
+        />
+      )}
+
+      {/* Membership Modal */}
+      {user && (
+        <MembershipModal
+          isOpen={isMembershipModalOpen}
+          onClose={() => setIsMembershipModalOpen(false)}
+          user={user}
+          onSuccess={(updatedUser) => {
+            setUser(updatedUser);
+            if (updatedUser.membership_status === 'approved') {
+              navigate(`/checkout/${book.id}`);
+            }
+          }}
+        />
+      )}
     </div>
   );
 }

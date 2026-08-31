@@ -609,6 +609,42 @@
   color: rgba(255, 255, 255, 0.4);
 }
 
+.admin-badge.approved {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.admin-badge.pending {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+
+.admin-badge.rejected {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.admin-badge.none {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-nav-count-badge {
+  margin-left: auto;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  min-width: 16px;
+  text-align: center;
+}
+
 /* ── Modal / Dialog ─── */
 .admin-modal-overlay {
   position: fixed;

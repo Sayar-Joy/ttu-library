@@ -15,10 +15,15 @@ function MyBooksPage() {
   const [borrowingBooks, setBorrowingBooks] = useState([]);
   const [favouriteBooks, setFavouriteBooks] = useState([]);
   const [finishedBooks, setFinishedBooks] = useState([]);
-  const [allBooks, setAllBooks] = useState([]);
+  const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [returningBook, setReturningBook] = useState(null);
+  
+  // Return Request Modal State
+  const [returnModalBook, setReturnModalBook] = useState(null);
+  const [returnCondition, setReturnCondition] = useState('good');
+  const [returnNotes, setReturnNotes] = useState('');
+  const [submittingReturn, setSubmittingReturn] = useState(false);
   const [returnMessage, setReturnMessage] = useState('');
 
   const closeSidebar = () => setSidebarOpen(false);
@@ -38,6 +43,15 @@ function MyBooksPage() {
       const stored = sessionStorage.getItem('ttu_user');
       if (stored) { const u = JSON.parse(stored); navigate(`/notifications/${u.id}`); }
     }
+    if (id === 'friends') {
+      const stored = sessionStorage.getItem('ttu_user');
+      if (stored) { const u = JSON.parse(stored); navigate(`/friends/${u.id}`); }
+    }
+    if (id === 'ai') {
+      const stored = sessionStorage.getItem('ttu_user');
+      if (stored) { const u = JSON.parse(stored); navigate(`/ai/${u.id}`); }
+      else { navigate('/ai'); }
+    }
     if (id === 'logout') navigate('/');
   };
 
@@ -46,39 +60,51 @@ function MyBooksPage() {
   const fetchAllData = async () => {
     try {
       setLoading(true);
-      const [txRes, profileRes, booksRes] = await Promise.all([
+      const [txRes, profileRes, booksRes, reqRes] = await Promise.all([
         fetch(`${API_BASE}/transactions/${userId}`),
         fetch(`${API_BASE}/profile/${userId}`),
         fetch(`${API_BASE}/books`),
+        fetch(`${API_BASE}/transactions/requests/${userId}`).catch(() => ({ json: () => ({ requests: [] }) }))
       ]);
 
       const txData = await txRes.json();
       const profileData = await profileRes.json();
       const booksData = await booksRes.json();
-
-      // 🔍 DEBUG: Log the profile data to see what we're getting
-      console.log('🔍 Profile Data:', profileData);
-      console.log('🔍 Favorite Books:', profileData.profile?.favoriteBooks);
-      console.log('🔍 Favourites:', profileData.profile?.favourites);
-      console.log('🔍 Finished Books:', profileData.profile?.finishedBooks);
+      const reqData = await reqRes.json();
 
       if (!txData.success && !profileData.success) { setError('Failed to load data'); return; }
 
       const booksMap = {};
       (booksData.books || []).forEach(b => { booksMap[b.id] = b; });
 
-      // Currently Borrowing
-      const activeTransactions = (txData.transactions || []).filter(tx => ['active', 'overdue'].includes(tx.status));
-      const demoToday = new Date('2026-06-28');
+      // Currently Borrowing & Return Requested
+      const activeTransactions = (txData.transactions || []).filter(tx => 
+        ['active', 'overdue', 'borrowed', 'return_requested'].includes(tx.status)
+      );
+      
+      const now = new Date();
       const borrowed = activeTransactions.map(tx => {
         const book = tx.book || booksMap[tx.book] || {};
         let daysRemaining = null;
-        if (tx.dueDate) daysRemaining = Math.ceil((new Date(tx.dueDate) - demoToday) / (1000 * 60 * 60 * 24));
+        if (tx.dueDate || tx.due_date) {
+          daysRemaining = Math.ceil((new Date(tx.dueDate || tx.due_date) - now) / (1000 * 60 * 60 * 24));
+        }
         return {
-          id: book.id || tx.book, title: book.title || 'Unknown', author: book.author || 'Unknown',
-          genre: book.genre, cover: book.cover, year: book.year,
-          transactionId: tx.id, dueDate: tx.dueDate, borrowDate: tx.borrowDate,
-          daysRemaining, progress: tx.progress || 0, status: tx.status,
+          id: book.id || tx.book,
+          title: book.title || 'Unknown',
+          author: book.author || 'Unknown',
+          genre: book.genre || book.category,
+          cover: book.cover || book.cover_url,
+          cover_url: book.cover_url || book.cover,
+          year: book.year || book.publication_year,
+          transactionId: tx.id,
+          accession_no: tx.accession_no,
+          dueDate: tx.dueDate || tx.due_date,
+          borrowDate: tx.borrowDate || tx.borrow_date,
+          daysRemaining,
+          progress: tx.progress_percentage || tx.progress || 0,
+          status: tx.status,
+          raw_status: tx.raw_status || tx.status
         };
       });
       setBorrowingBooks(borrowed);
@@ -89,54 +115,57 @@ function MyBooksPage() {
       // Finished
       setFinishedBooks((profileData.profile?.finishedBooks || []).filter(Boolean));
 
-      setAllBooks(booksData.books || []);
+      // Requests
+      setRequests(reqData.requests || []);
+
       setLoading(false);
-    } catch (err) { setError('Failed to connect to server'); setLoading(false); }
+    } catch (err) { 
+      setError('Failed to connect to server'); 
+      setLoading(false); 
+    }
   };
 
-  const handleReturn = async (transactionId) => {
-    if (!transactionId) return;
-    
-    setReturningBook(transactionId);
+  const handleOpenReturnModal = (book) => {
+    setReturnModalBook(book);
+    setReturnCondition('good');
+    setReturnNotes('');
+    setReturnMessage('');
+  };
+
+  const handleSubmitReturnRequest = async (e) => {
+    e.preventDefault();
+    if (!returnModalBook) return;
+
+    setSubmittingReturn(true);
     setReturnMessage('');
 
     try {
-      const res = await fetch(`${API_BASE}/transactions/return`, {
+      const res = await fetch(`${API_BASE}/transactions/request-return`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ transactionId }),
+        body: JSON.stringify({
+          transactionId: returnModalBook.transactionId,
+          returnCondition,
+          notes: returnNotes.trim()
+        }),
       });
 
       const data = await res.json();
 
-      if (data.success) {
-        setReturnMessage('✅ Book returned successfully!');
-        // Refresh the data
+      if (res.ok && data.success) {
+        setReturnMessage('✅ Return request submitted! Please drop off the physical copy at the circulation desk.');
+        setReturnModalBook(null);
         await fetchAllData();
-        // Clear message after 3 seconds
-        setTimeout(() => setReturnMessage(''), 3000);
+        setTimeout(() => setReturnMessage(''), 6000);
       } else {
-        setReturnMessage('❌ ' + (data.message || 'Failed to return book'));
+        alert(data.message || 'Failed to submit return request');
       }
     } catch (err) {
-      setReturnMessage('❌ Failed to connect to server');
+      alert('Failed to connect to server. Please try again.');
     } finally {
-      setReturningBook(null);
+      setSubmittingReturn(false);
     }
   };
-
-  const navItems = [
-    { id: 'bookshelf', label: 'Bookshelf', icon: BookshelfIcon },
-    { id: 'mybooks', label: 'My Books', icon: BooksIcon },
-    { id: 'notifications', label: 'Notifications', icon: BellIcon },
-    { id: 'ai', label: 'OrionPax AI', icon: AIIcon },
-    { id: 'profile', label: 'Profile', icon: ProfileIcon },
-    { id: 'loan', label: 'Loan', icon: LoanIcon },
-  ];
-  const bottomNavItems = [
-    { id: 'settings', label: 'Settings', icon: SettingsIcon },
-    { id: 'logout', label: 'Logout', icon: LogoutIcon },
-  ];
 
   const genreColors = {
     'Fiction': '#B0DDFE', 'Classic': 'rgba(143, 111, 70, 0.9)', 'Science': '#B0DDFE',
@@ -153,8 +182,10 @@ function MyBooksPage() {
     'Philosophy': '#C2410C', 'Technology': '#35627E',
   };
   const statusColors = {
-    active: { bg: '#dbeafe', text: '#1e40af', label: 'Active' },
+    active: { bg: '#dbeafe', text: '#1e40af', label: 'Active Loan' },
+    borrowed: { bg: '#dbeafe', text: '#1e40af', label: 'Active Loan' },
     overdue: { bg: '#fee2e2', text: '#991b1b', label: 'Overdue' },
+    return_requested: { bg: '#fef3c7', text: '#92400e', label: '⏳ Return Pending Verification' },
   };
 
   if (loading) {
@@ -169,6 +200,7 @@ function MyBooksPage() {
       </div>
     );
   }
+
   if (error) {
     return (
       <div className="mybooks-page">
@@ -202,20 +234,23 @@ function MyBooksPage() {
           <div className="header-right">
             <button className="header-icon-btn"><HelpIcon /></button>
             <button className="header-icon-btn"><BellIcon2 /></button>
-            <div className="header-avatar"><div className="avatar-circle">??</div></div>
+            <div className="header-avatar"><div className="avatar-circle">ST</div></div>
           </div>
         </header>
 
         <div className="mybooks-body">
           <div className="mybooks-page-header">
-            <h1>My Books</h1>
-            <p className="mybooks-subtitle">Track your borrowing, favourites & finished reads</p>
+            <h1>My Books & Circulation</h1>
+            <p className="mybooks-subtitle">Manage your active loans, track borrow requests, and submit return requests.</p>
           </div>
 
           {/* Category Tabs */}
           <div className="mybooks-tabs">
             <button className={`mybooks-tab ${activeTab === 'borrowing' ? 'active' : ''}`} onClick={() => setActiveTab('borrowing')}>
-              <BorrowIcon /><span>Currently Borrowing</span><span className="tab-count">{borrowingBooks.length}</span>
+              <BorrowIcon /><span>Active Loans</span><span className="tab-count">{borrowingBooks.length}</span>
+            </button>
+            <button className={`mybooks-tab ${activeTab === 'requests' ? 'active' : ''}`} onClick={() => setActiveTab('requests')}>
+              <RequestIcon /><span>My Requests</span><span className="tab-count">{requests.length}</span>
             </button>
             <button className={`mybooks-tab ${activeTab === 'favourites' ? 'active' : ''}`} onClick={() => setActiveTab('favourites')}>
               <HeartIcon /><span>Favourites</span><span className="tab-count">{favouriteBooks.length}</span>
@@ -228,13 +263,14 @@ function MyBooksPage() {
           {/* Return Message */}
           {returnMessage && (
             <div style={{ 
-              padding: '12px 20px', 
-              marginBottom: '16px', 
+              padding: '14px 20px', 
+              marginBottom: '20px', 
               backgroundColor: returnMessage.startsWith('✅') ? '#d1fae5' : '#fee2e2',
               color: returnMessage.startsWith('✅') ? '#065f46' : '#991b1b',
-              borderRadius: '8px',
+              borderRadius: '12px',
               fontSize: '14px',
-              fontWeight: 500
+              fontWeight: 500,
+              border: returnMessage.startsWith('✅') ? '1px solid #a7f3d0' : '1px solid #fecaca'
             }}>
               {returnMessage}
             </div>
@@ -242,14 +278,14 @@ function MyBooksPage() {
 
           {/* Tab Content */}
           <div className="mybooks-tab-content">
-            {/* Currently Borrowing */}
+            {/* Active Loans */}
             {activeTab === 'borrowing' && (
               <>
                 {borrowingBooks.length === 0 ? (
                   <div className="mybooks-empty">
                     <div className="empty-icon"><BorrowIconLarge /></div>
-                    <h3>No borrowed books</h3>
-                    <p>Books you borrow will show up here. Head to the Bookshelf to get started!</p>
+                    <h3>No active borrowed books</h3>
+                    <p>Books you borrow will show up here. Browse the library catalog to request a book!</p>
                     <button className="browse-btn" onClick={() => navigate('/bookshelf')}>Browse Bookshelf</button>
                   </div>
                 ) : (
@@ -257,13 +293,12 @@ function MyBooksPage() {
                     {borrowingBooks.map(book => (
                       <div key={book.transactionId || book.id} className="borrow-card">
                         <div className="borrow-card-cover">
-                          {book.cover_url ? (
-                            <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          {book.cover_url || book.cover ? (
+                            <img src={book.cover_url || book.cover} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
-                            <>
-                              <div className="borrow-cover-bg" style={{ backgroundColor: book.cover || '#485E78' }} />
-                              <BookCoverSVG title={book.title} color={book.cover} />
-                            </>
+                            <div className="borrow-cover-bg" style={{ backgroundColor: '#485E78' }}>
+                              <BookCoverSVG title={book.title} />
+                            </div>
                           )}
                         </div>
                         <div className="borrow-card-body">
@@ -271,30 +306,89 @@ function MyBooksPage() {
                             <div className="borrow-card-info">
                               <h3>{book.title}</h3>
                               <p className="borrow-author">{book.author}</p>
-                              {book.genre && <span className="borrow-genre-badge" style={{ background: genreColors[book.genre] || '#B0DDFE', color: genreTextColors[book.genre] || '#35627E' }}>{book.genre}</span>}
+                              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                                {book.genre && <span className="borrow-genre-badge" style={{ background: genreColors[book.genre] || '#B0DDFE', color: genreTextColors[book.genre] || '#35627E' }}>{book.genre}</span>}
+                                <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748b' }}>Copy: {book.accession_no}</span>
+                              </div>
                             </div>
                             <div className="borrow-card-status">
-                              <span className="borrow-status-badge" style={{ background: (statusColors[book.status] || statusColors.active).bg, color: (statusColors[book.status] || statusColors.active).text }}>{(statusColors[book.status] || statusColors.active).label}</span>
+                              <span className="borrow-status-badge" style={{ background: (statusColors[book.status] || statusColors.active).bg, color: (statusColors[book.status] || statusColors.active).text }}>
+                                {(statusColors[book.status] || statusColors.active).label}
+                              </span>
                             </div>
                           </div>
-                          <div className="borrow-progress-section">
-                            <div className="borrow-progress-header"><span className="progress-label">Progress</span><span className="progress-percent">{book.progress || 0}%</span></div>
-                            <div className="borrow-progress-track"><div className="borrow-progress-fill" style={{ width: `${book.progress || 0}%` }} /></div>
-                          </div>
+
                           {book.dueDate && (
                             <div className={`borrow-due-info ${book.daysRemaining !== null && book.daysRemaining <= 3 ? 'due-soon' : ''}`}>
                               <CalendarIcon />
                               <span>Due: {new Date(book.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                              {book.daysRemaining !== null && <span className={`days-left ${book.daysRemaining <= 3 ? 'urgent' : ''}`}>({book.daysRemaining} {book.daysRemaining === 1 ? 'day' : 'days'} left)</span>}
+                              {book.daysRemaining !== null && (
+                                <span className={`days-left ${book.daysRemaining <= 3 ? 'urgent' : ''}`}>
+                                  ({book.daysRemaining < 0 ? `${Math.abs(book.daysRemaining)} days overdue` : `${book.daysRemaining} days left`})
+                                </span>
+                              )}
                             </div>
                           )}
-                          <button 
-                            className="borrow-return-btn"
-                            onClick={() => handleReturn(book.transactionId)}
-                            disabled={returningBook === book.transactionId}
-                          >
-                            {returningBook === book.transactionId ? 'Returning...' : 'Return Book'}
-                          </button>
+
+                          <div style={{ marginTop: '12px' }}>
+                            {book.status === 'return_requested' ? (
+                              <div style={{ padding: '8px 12px', background: '#fef3c7', borderRadius: '8px', color: '#92400e', fontSize: '13px' }}>
+                                ⏳ Return submitted — Hand in book at circulation desk
+                              </div>
+                            ) : (
+                              <button 
+                                className="borrow-return-btn"
+                                onClick={() => handleOpenReturnModal(book)}
+                              >
+                                Request Return 🔄
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* My Requests Tab */}
+            {activeTab === 'requests' && (
+              <>
+                {requests.length === 0 ? (
+                  <div className="mybooks-empty">
+                    <div className="empty-icon">🪪</div>
+                    <h3>No requests history</h3>
+                    <p>When you submit borrow or return requests, you can track their approval status here.</p>
+                  </div>
+                ) : (
+                  <div className="mybooks-requests-list">
+                    {requests.map(req => (
+                      <div key={req.id} className="request-card">
+                        <div className="request-card-left">
+                          <div className="request-type-badge">
+                            {req.status === 'borrow_requested' ? '📥 Borrow Request' : req.status === 'return_requested' ? '🔄 Return Request' : req.status === 'borrowed' ? '✓ Borrow Approved' : req.status === 'returned' ? '✓ Return Completed' : '✕ Rejected'}
+                          </div>
+                          <h4>{req.book?.title || 'Book Title'}</h4>
+                          <p style={{ margin: '2px 0 6px', fontSize: 13, color: '#64748b' }}>by {req.book?.author || '—'}</p>
+                          {req.borrow_request_notes && (
+                            <p style={{ fontSize: 12.5, color: '#475569', margin: '4px 0' }}>
+                              <strong>Your Note:</strong> {req.borrow_request_notes}
+                            </p>
+                          )}
+                          {req.librarian_notes && (
+                            <p style={{ fontSize: 12.5, color: req.status === 'rejected' ? '#b91c1c' : '#047857', margin: '4px 0' }}>
+                              <strong>Librarian Note:</strong> {req.librarian_notes}
+                            </p>
+                          )}
+                        </div>
+                        <div className="request-card-right">
+                          <span className={`request-status-pill ${req.status}`}>
+                            {req.status === 'borrow_requested' ? '⏳ Under Review' : req.status === 'return_requested' ? '⏳ Awaiting Drop-off' : req.status === 'borrowed' ? 'Active' : req.status === 'returned' ? 'Returned' : 'Rejected'}
+                          </span>
+                          <span style={{ fontSize: 11.5, color: '#94a3b8' }}>
+                            {req.borrow_requested_at ? new Date(req.borrow_requested_at).toLocaleDateString() : (req.created_at ? new Date(req.created_at).toLocaleDateString() : '—')}
+                          </span>
                         </div>
                       </div>
                     ))}
@@ -321,10 +415,9 @@ function MyBooksPage() {
                           {book.cover_url ? (
                             <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
-                            <>
-                              <div className="mybook-card-cover-bg" style={{ backgroundColor: book.cover || '#485E78' }} />
-                              <BookCoverSVG title={book.title} color={book.cover} />
-                            </>
+                            <div className="mybook-card-cover-bg" style={{ backgroundColor: '#485E78' }}>
+                              <BookCoverSVG title={book.title} />
+                            </div>
                           )}
                           <span className="mybook-genre-badge-sm" style={{ background: genreColors[book.genre] || '#B0DDFE', color: genreTextColors[book.genre] || '#35627E' }}>{book.genre}</span>
                           <div className="mybook-fav-indicator"><HeartFilledIcon /></div>
@@ -347,66 +440,86 @@ function MyBooksPage() {
                     <p>Books you complete will appear here. Keep reading!</p>
                   </div>
                 ) : (
-                  <>
-                    <div className="finished-summary">
-                      <div className="finished-count-badge"><span className="finished-number">{finishedBooks.length}</span><span className="finished-label">books completed</span></div>
-                    </div>
-                    <div className="mybooks-grid">
-                      {finishedBooks.map(book => (
-                        <div key={book.id} className="mybook-card completed">
-                          <div className="mybook-card-cover-wrapper">
-                            {book.cover_url ? (
-                              <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            ) : (
-                              <>
-                                <div className="mybook-card-cover-bg" style={{ backgroundColor: book.cover || '#485E78' }} />
-                                <BookCoverSVG title={book.title} color={book.cover} />
-                              </>
-                            )}
-                            <span className="mybook-card-check">✓</span>
-                          </div>
-                          <div className="mybook-card-info"><h4 className="mybook-card-title">{book.title}</h4><p className="mybook-card-author">{book.author}</p><span className="mybook-card-genre-label">{book.genre}</span></div>
+                  <div className="mybooks-grid">
+                    {finishedBooks.map(book => (
+                      <div key={book.id} className="mybook-card">
+                        <div className="mybook-card-cover-wrapper">
+                          {book.cover_url ? (
+                            <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <div className="mybook-card-cover-bg" style={{ backgroundColor: '#485E78' }}>
+                              <BookCoverSVG title={book.title} />
+                            </div>
+                          )}
                         </div>
-                      ))}
-                    </div>
-                  </>
+                        <div className="mybook-card-info"><h4 className="mybook-card-title">{book.title}</h4><p className="mybook-card-author">{book.author}</p></div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </>
             )}
           </div>
         </div>
-
-        <footer className="mybooks-footer">
-          <div className="footer-left"><span className="footer-brand">TTU Library</span><span className="footer-copy">© 2026 TTU IT Department. Designed for focus.</span></div>
-          <div className="footer-right">
-            <a href="#" className="footer-link">Privacy Policy</a>
-            <a href="#" className="footer-link">Terms of Service</a>
-            <a href="#" className="footer-link">Contact Librarian</a>
-          </div>
-        </footer>
       </div>
-    </div>
-  );
-}
 
-/* ─── Book Cover SVG ─── */
-function BookCoverSVG({ title, color }) {
-  const words = (title || '').split(' ');
-  const line1 = words.slice(0, Math.ceil(words.length / 2)).join(' ');
-  const line2 = words.slice(Math.ceil(words.length / 2)).join(' ');
-  const safeId = (color || '485E78').replace('#', '');
-  return (
-    <svg className="book-cover-svg" viewBox="0 0 128 160" preserveAspectRatio="xMidYMid slice">
-      <defs>
-        <linearGradient id={`grad-mb-${safeId}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor={color || '#485E78'} />
-          <stop offset="100%" stopColor={color ? 'rgba(0,0,0,0.3)' : '#2D3E50'} />
-        </linearGradient>
-      </defs>
-      <rect width="128" height="160" fill={`url(#grad-mb-${safeId})`} />
-      <text x="64" y="78" textAnchor="middle" fill="white" fontSize="10" fontFamily="Hanken Grotesk, sans-serif" opacity="0.9">{line1}</text>
-      {line2 && <text x="64" y="96" textAnchor="middle" fill="white" fontSize="10" fontFamily="Hanken Grotesk, sans-serif" opacity="0.9">{line2}</text>}
-    </svg>
+      {/* Return Request Modal */}
+      {returnModalBook && (
+        <div className="return-modal-overlay" onClick={() => setReturnModalBook(null)}>
+          <div className="return-modal" onClick={e => e.stopPropagation()}>
+            <div className="return-modal-header">
+              <h3>Request Book Return</h3>
+              <button className="return-modal-close" onClick={() => setReturnModalBook(null)}>×</button>
+            </div>
+            
+            <form onSubmit={handleSubmitReturnRequest} className="return-modal-body">
+              <div className="return-book-preview">
+                <strong>{returnModalBook.title}</strong>
+                <p>Accession: {returnModalBook.accession_no}</p>
+                {returnModalBook.daysRemaining < 0 && (
+                  <div style={{ color: '#b91c1c', fontSize: '12px', fontWeight: 600, marginTop: 4 }}>
+                    ⚠️ Overdue by {Math.abs(returnModalBook.daysRemaining)} days (Estimated fine: {Math.abs(returnModalBook.daysRemaining) * 50} kyats)
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group" style={{ marginTop: 14 }}>
+                <label>Physical Book Condition</label>
+                <select
+                  value={returnCondition}
+                  onChange={e => setReturnCondition(e.target.value)}
+                  className="form-control"
+                >
+                  <option value="good">Good Condition (No damage)</option>
+                  <option value="minor_wear">Minor Wear & Tear</option>
+                  <option value="damaged">Needs Repair / Damaged</option>
+                </select>
+              </div>
+
+              <div className="form-group" style={{ marginTop: 14 }}>
+                <label>Return Drop-off Note (Optional)</label>
+                <textarea
+                  rows={2}
+                  className="form-control"
+                  placeholder="e.g. Handed to librarian at 1st floor desk"
+                  value={returnNotes}
+                  onChange={e => setReturnNotes(e.target.value)}
+                />
+              </div>
+
+              <div className="return-modal-footer">
+                <button type="button" className="btn-cancel" onClick={() => setReturnModalBook(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-submit-request" disabled={submittingReturn}>
+                  {submittingReturn ? 'Submitting…' : 'Submit Return Request 📥'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -422,13 +535,15 @@ function LogoutIcon() { return (<svg width="18" height="18" viewBox="0 0 18 18" 
 function SearchIconSmall() { return (<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="5.5" stroke="#43474D" strokeWidth="1.5"/><path d="M12 12L16.5 16.5" stroke="#43474D" strokeWidth="1.5" strokeLinecap="round"/></svg>); }
 function HelpIcon() { return (<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="#485E78" strokeWidth="1.5"/><path d="M7.5 8C7.5 6.61929 8.61929 5.5 10 5.5C11.3807 5.5 12.5 6.61929 12.5 8C12.5 9.38071 11.3807 10.5 10 10.5V12" stroke="#485E78" strokeWidth="1.5" strokeLinecap="round"/><circle cx="10" cy="14.5" r="0.75" fill="#485E78"/></svg>); }
 function BellIcon2() { return (<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M8 3.5C8 2.94772 8.44772 2.5 9 2.5H11C11.5523 2.5 12 2.94772 12 3.5V4.0812C14.1682 4.53092 15.75 6.41008 15.75 8.66667V11.8206L17.2803 13.3509C17.4362 14.0068 17.504 14.2332 17.4493 14.4405C17.3946 14.6478 17.2275 14.7917 17.0243 14.7917H2.97566C2.77249 14.7917 2.60538 14.6478 2.55069 14.4405C2.49601 14.2332 2.56379 14.0068 2.71967 13.3509L4.25 11.8206V8.66667C4.25 6.41008 5.83185 4.53092 8 4.0812V3.5Z" stroke="#485E78" strokeWidth="1.5"/><path d="M8 16.5C8 17.0523 8.44772 17.5 9 17.5H11C11.5523 17.5 12 17.0523 12 16.5" stroke="#485E78" strokeWidth="1.5" strokeLinecap="round"/></svg>); }
-function BorrowIcon() { return (<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="3" width="14" height="12" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M6 1.5V4M12 1.5V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/><line x1="2" y1="7" x2="16" y2="7" stroke="currentColor" strokeWidth="1.2"/></svg>); }
-function HeartIcon() { return (<svg width="18" height="16" viewBox="0 0 18 16" fill="none"><path d="M9 15L1.5 7.5C0.5 6.5 0.5 4.5 1.5 3.5C2.5 2.5 4.5 2.5 5.5 3.5L9 7L12.5 3.5C13.5 2.5 15.5 2.5 16.5 3.5C17.5 4.5 17.5 6.5 16.5 7.5L9 15Z" stroke="currentColor" strokeWidth="1.5" strokeLinejoin="round"/></svg>); }
-function CheckIcon() { return (<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="8" stroke="currentColor" strokeWidth="1.5"/><path d="M5 9L8 12L13 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>); }
-function HeartFilledIcon() { return (<svg width="14" height="12" viewBox="0 0 14 12" fill="white"><path d="M7 12L1 6C0 5 0 3 1 2C2 1 3.7 1 4.7 2L7 4.3L9.3 2C10.3 1 12 1 13 2C14 3 14 5 13 6L7 12Z" fill="white"/></svg>); }
-function CalendarIcon() { return (<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1.5" y="2.5" width="11" height="10" rx="1.5" stroke="currentColor" strokeWidth="1.2"/><line x1="1.5" y1="5.5" x2="12.5" y2="5.5" stroke="currentColor" strokeWidth="1.2"/><line x1="4.5" y1="1" x2="4.5" y2="4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/><line x1="9.5" y1="1" x2="9.5" y2="4" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>); }
-function BorrowIconLarge() { return (<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><rect x="6" y="8" width="36" height="32" rx="4" stroke="#9CA3AF" strokeWidth="2"/><path d="M14 4V10M34 4V10" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round"/><line x1="6" y1="18" x2="42" y2="18" stroke="#9CA3AF" strokeWidth="2"/></svg>); }
-function HeartIconLarge() { return (<svg width="48" height="44" viewBox="0 0 48 44" fill="none"><path d="M24 42L4 22C1 18.7 1 12.7 4 9.7C7 6.7 12.3 6.7 15.3 9.7L24 18.3L32.7 9.7C35.7 6.7 41 6.7 44 9.7C47 12.7 47 18.7 44 22L24 42Z" stroke="#9CA3AF" strokeWidth="2" strokeLinejoin="round"/></svg>); }
-function CheckIconLarge() { return (<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" stroke="#9CA3AF" strokeWidth="2"/><path d="M14 24L21 31L34 17" stroke="#9CA3AF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>); }
+function BorrowIcon() { return (<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2V12M9 12L5 8M9 12L13 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M2 14V15C2 15.5523 2.44772 16 3 16H15C15.5523 16 16 15.5523 16 15V14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>); }
+function RequestIcon() { return (<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="2" stroke="currentColor" strokeWidth="1.5"/><path d="M6 6H12M6 9H12M6 12H9" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>); }
+function HeartIcon() { return (<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 15.25S1.5 10.5 1.5 5.5A4 4 0 019 3.35 4 4 0 0116.5 5.5c0 5-7.5 9.75-7.5 9.75z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>); }
+function CheckIcon() { return (<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7.5" stroke="currentColor" strokeWidth="1.5"/><path d="M5.5 9L7.5 11.5L12.5 6.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>); }
+function BorrowIconLarge() { return (<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" stroke="#CBD5E1" strokeWidth="2"/><path d="M24 14V30M24 30L16 22M24 30L32 22" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/><path d="M12 34V35C12 35.5523 12.4477 36 13 36H35C35.5523 36 36 35.5523 36 35V34" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round"/></svg>); }
+function HeartIconLarge() { return (<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" stroke="#CBD5E1" strokeWidth="2"/><path d="M24 34S11 25.5 11 16.5A7 7 0 0124 12.8 7 7 0 0137 16.5C37 25.5 24 34 24 34Z" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>); }
+function CheckIconLarge() { return (<svg width="48" height="48" viewBox="0 0 48 48" fill="none"><circle cx="24" cy="24" r="22" stroke="#CBD5E1" strokeWidth="2"/><path d="M16 24L21.5 29.5L32 18.5" stroke="#94A3B8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>); }
+function HeartFilledIcon() { return (<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 14S1.5 9.5 1.5 5A3.5 3.5 0 018 2.8 3.5 3.5 0 0114.5 5C14.5 9.5 8 14 8 14Z" fill="#E74C3C"/></svg>); }
+function CalendarIcon() { return (<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="2" width="12" height="11" rx="1.5" stroke="currentColor" strokeWidth="1.2"/><path d="M1 5.5H13" stroke="currentColor" strokeWidth="1.2"/><path d="M4 0.5V3M10 0.5V3" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round"/></svg>); }
+function BookCoverSVG({ title }) { return (<svg width="100%" height="100%" viewBox="0 0 100 140" fill="none"><rect width="100" height="140" fill="#485E78"/><text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fill="white" fontSize="10" fontFamily="sans-serif">{title ? title.slice(0, 15) : 'Book'}</text></svg>); }
 
 export default MyBooksPage;

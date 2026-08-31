@@ -25,6 +25,14 @@ CREATE TABLE users (
     email TEXT UNIQUE NOT NULL,
     avatar_url TEXT,
     role TEXT CHECK (role IN ('student', 'librarian')) DEFAULT 'student',
+    membership_status TEXT CHECK (membership_status IN ('none', 'pending', 'approved', 'rejected')) DEFAULT 'none',
+    phone TEXT,
+    major TEXT,
+    year TEXT,
+    nrc TEXT,
+    membership_applied_at TIMESTAMP WITH TIME ZONE,
+    membership_approved_at TIMESTAMP WITH TIME ZONE,
+    membership_rejected_reason TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
@@ -54,14 +62,22 @@ CREATE TABLE physical_copies (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Transactions table (borrowing records)
+-- Transactions table (borrowing and request records)
 CREATE TABLE transactions (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     user_id UUID NOT NULL REFERENCES users(id),
     accession_no TEXT NOT NULL REFERENCES physical_copies(accession_no),
-    borrow_date TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-    due_date TIMESTAMP WITH TIME ZONE DEFAULT NOW() + INTERVAL '7 days',
+    status VARCHAR(30) DEFAULT 'borrowed', -- 'borrow_requested', 'borrowed', 'return_requested', 'returned', 'rejected'
+    borrow_date TIMESTAMP WITH TIME ZONE,
+    due_date TIMESTAMP WITH TIME ZONE,
     return_date TIMESTAMP WITH TIME ZONE,
+    borrow_request_notes TEXT,
+    borrow_duration_days INTEGER DEFAULT 7,
+    return_request_notes TEXT,
+    return_condition VARCHAR(50),
+    borrow_requested_at TIMESTAMP WITH TIME ZONE,
+    return_requested_at TIMESTAMP WITH TIME ZONE,
+    librarian_notes TEXT,
     fine_status TEXT CHECK (fine_status IN ('no_fine', 'unpaid', 'paid')) DEFAULT 'no_fine',
     final_fine_amount INTEGER DEFAULT 0,
     progress_percentage INTEGER DEFAULT 0 CHECK (progress_percentage >= 0 AND progress_percentage <= 100)

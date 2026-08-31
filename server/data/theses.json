@@ -1,0 +1,40 @@
+[
+  {
+    "id": "b7bf47e1-df5e-43fd-b80f-47120b372e97",
+    "title": "Autonomous Navigation and Path Planning for Mobile Robots in GPS-Denied Environments",
+    "author": "Ko Myo Min Aung",
+    "student_roll": "5MC-08",
+    "major": "Mechatronics Engineering",
+    "year": 2025,
+    "supervisor": "Dr. Khin Mar Lar",
+    "abstract": "This research presents an adaptive SLAM-based path planning algorithm for autonomous mobile robots operating in subterranean and indoor environments without GPS availability.",
+    "category": "Thesis",
+    "pdf_url": null,
+    "preview_pdf_url": null,
+    "cover_url": null,
+    "total_pages": 24,
+    "preview_pages_count": 10,
+    "accession_no": "TH-MC-2025-008",
+    "created_at": "2026-08-17T01:35:11.048Z",
+    "updated_at": "2026-08-17T01:35:11.048Z"
+  },
+  {
+    "id": "82d6c19b-9aad-4272-8c0a-8faa170fb565",
+    "title": "IoT-Based Smart Energy Monitoring for Industrial Applications",
+    "author": "Aung Kyaw Kyaw",
+    "student_roll": "5EP-12",
+    "major": "Electrical Power",
+    "year": 2025,
+    "supervisor": "Dr. Win Zaw",
+    "abstract": "This thesis proposes an intelligent IoT architecture for monitoring sub-station power quality and distribution loads in industrial campuses.",
+    "category": "Thesis",
+    "pdf_url": null,
+    "preview_pdf_url": null,
+    "cover_url": null,
+    "total_pages": 56,
+    "preview_pages_count": 10,
+    "accession_no": null,
+    "created_at": "2026-08-17T01:29:37.964Z",
+    "updated_at": "2026-08-17T01:29:37.964Z"
+  }
+]

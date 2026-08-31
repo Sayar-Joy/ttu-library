@@ -36,7 +36,8 @@ export async function getAllUsers(req, res) {
     let query = supabase
       .from('users')
       .select(`
-        id, name, student_id, roll_number, email, avatar_url, role, created_at,
+        id, name, student_id, roll_number, email, avatar_url, role, membership_status,
+        phone, major, year, nrc, membership_applied_at, membership_approved_at, membership_rejected_reason, created_at,
         transactions (
           id,
           return_date
@@ -109,7 +110,10 @@ export async function getUserDetails(req, res) {
     // ── Fetch student profile ─────────────────────────────────
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('id, name, student_id, roll_number, email, avatar_url, role, created_at')
+      .select(`
+        id, name, student_id, roll_number, email, avatar_url, role, membership_status,
+        phone, major, year, nrc, membership_applied_at, membership_approved_at, membership_rejected_reason, created_at
+      `)
       .eq('id', userId)
       .single();
 

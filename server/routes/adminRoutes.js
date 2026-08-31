@@ -4,7 +4,19 @@ import { verifyLibrarian } from '../middleware/verifyLibrarian.js';
 // ── Controllers ───────────────────────────────────────────────
 import { getAllUsers, getUserDetails } from '../controllers/adminUserController.js';
 import { addBookRecord, addPhysicalCopy, getInventoryStatus, updateCopyStatus } from '../controllers/adminCatalogController.js';
+import { getMembershipApplications, approveMembership, rejectMembership } from '../controllers/adminMembershipController.js';
 import { processReturn, markFinePaid } from '../controllers/adminTransactionController.js';
+import { 
+  getBorrowRequests, approveBorrowRequest, rejectBorrowRequest,
+  getReturnRequests, approveReturnRequest, rejectReturnRequest 
+} from '../controllers/adminCirculationController.js';
+import {
+  createThesisHandler,
+  getThesesHandler,
+  updateThesisHandler,
+  deleteThesisHandler,
+  getThesisStatsHandler,
+} from '../controllers/thesisController.js';
 
 const router = Router();
 
@@ -20,6 +32,47 @@ const router = Router();
 
 // Apply verifyLibrarian to ALL routes on this router
 router.use(verifyLibrarian);
+
+// ============================================================
+// Thesis Management (Admin)
+// ============================================================
+
+// GET /api/admin/theses - Fetch paginated theses with filters
+router.get('/theses', getThesesHandler);
+
+// GET /api/admin/theses-stats - Fetch theses statistics breakdown
+router.get('/theses-stats', getThesisStatsHandler);
+
+// POST /api/admin/theses - Add a new thesis record
+router.post('/theses', createThesisHandler);
+
+// PATCH /api/admin/theses/:id - Update thesis record
+router.patch('/theses/:id', updateThesisHandler);
+
+// DELETE /api/admin/theses/:id - Delete thesis record
+router.delete('/theses/:id', deleteThesisHandler);
+
+// ============================================================
+// Circulation Requests (Borrow & Return Requests)
+// ============================================================
+
+// GET /api/admin/requests/borrow - List pending borrow requests
+router.get('/requests/borrow', getBorrowRequests);
+
+// PATCH /api/admin/requests/borrow/:txId/approve - Approve borrow request
+router.patch('/requests/borrow/:txId/approve', approveBorrowRequest);
+
+// PATCH /api/admin/requests/borrow/:txId/reject - Reject borrow request
+router.patch('/requests/borrow/:txId/reject', rejectBorrowRequest);
+
+// GET /api/admin/requests/return - List pending return requests
+router.get('/requests/return', getReturnRequests);
+
+// PATCH /api/admin/requests/return/:txId/approve - Approve & verify return request
+router.patch('/requests/return/:txId/approve', approveReturnRequest);
+
+// PATCH /api/admin/requests/return/:txId/reject - Reject return request
+router.patch('/requests/return/:txId/reject', rejectReturnRequest);
 
 // ============================================================
 // User Management
@@ -71,4 +124,22 @@ router.post('/returns/:accessionNo', processReturn);
 // Mark a transaction's fine as paid
 router.patch('/fines/:transactionId/pay', markFinePaid);
 
+// ============================================================
+// Membership Application Management
+// ============================================================
+
+// GET /api/admin/memberships
+// Fetch student membership applications
+// Query params: ?status=pending|approved|rejected|none|all&search=<name|email|roll_number>&page=1&limit=25
+router.get('/memberships', getMembershipApplications);
+
+// PATCH /api/admin/memberships/:userId/approve
+// Approve student's library membership
+router.patch('/memberships/:userId/approve', approveMembership);
+
+// PATCH /api/admin/memberships/:userId/reject
+// Reject student's library membership with optional reason
+router.patch('/memberships/:userId/reject', rejectMembership);
+
 export default router;
+

@@ -12,6 +12,8 @@ import { initNotificationCronJobs } from './cron/notificationJobs.js';
 import QRCode from 'qrcode';
 import adminRoutes from './routes/adminRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
+import thesisRoutes from './routes/thesisRoutes.js';
+import * as thesisService from './services/thesisService.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -33,8 +35,147 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/upload', uploadRoutes);
 
 // ============================================================
-// Auth Routes (Supabase Auth)
+// Auth Routes (Supabase Auth & Google OAuth)
 // ============================================================
+
+/**
+ * POST /api/auth/oauth-sync
+ * Synchronize Google OAuth user with the database on first signup / login.
+ * Creates profile row in `users` if not present.
+ */
+app.post('/api/auth/oauth-sync', async (req, res) => {
+  try {
+    const { id, email, name, avatar_url } = req.body;
+
+    if (!id || !email) {
+      return res.status(400).json({
+        success: false,
+        message: 'id and email are required for OAuth sync.'
+      });
+    }
+
+    const user = await userService.syncOAuthUser({
+      id,
+      email,
+      name,
+      avatar_url
+    });
+
+    res.json({
+      success: true,
+      message: 'OAuth profile synced successfully.',
+      user: {
+        id: user.id,
+        name: user.name,
+        student_id: user.student_id,
+        roll_number: user.roll_number,
+        email: user.email,
+        avatar_url: user.avatar_url,
+        role: user.role,
+        membership_status: user.membership_status || 'none',
+        phone: user.phone,
+        major: user.major,
+        year: user.year,
+        nrc: user.nrc,
+        membership_applied_at: user.membership_applied_at,
+        membership_approved_at: user.membership_approved_at,
+        membership_rejected_reason: user.membership_rejected_reason,
+      }
+    });
+  } catch (err) {
+    console.error('OAuth sync error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Server error during OAuth sync.' });
+  }
+});
+
+// ============================================================
+// Student Membership Routes
+// ============================================================
+
+/**
+ * POST /api/membership/apply
+ * Student submits their library membership application form.
+ */
+app.post('/api/membership/apply', async (req, res) => {
+  try {
+    const { userId, name, roll_number, student_id, major, year, phone, nrc } = req.body;
+
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required.' });
+    }
+
+    if (!roll_number && !student_id) {
+      return res.status(400).json({ success: false, message: 'Roll number / Student ID is required.' });
+    }
+
+    const updatedUser = await userService.submitMembershipApplication(userId, {
+      name,
+      roll_number,
+      student_id,
+      major,
+      year,
+      phone,
+      nrc
+    });
+
+    // Create a confirmation notification for the student
+    try {
+      await notificationService.createNotification(
+        userId,
+        'membership_submitted',
+        'Application Submitted',
+        'Your library membership form has been submitted and is currently under review by the librarian.'
+      );
+    } catch (notifErr) {
+      console.error('Failed to create membership submission notification:', notifErr);
+    }
+
+    res.json({
+      success: true,
+      message: 'Library membership application submitted successfully. Please wait for librarian approval.',
+      user: updatedUser
+    });
+  } catch (err) {
+    console.error('Membership apply error:', err);
+    res.status(500).json({ success: false, message: err.message || 'Failed to submit membership application.' });
+  }
+});
+
+/**
+ * GET /api/membership/status/:userId
+ * Get current student's membership status and application data.
+ */
+app.get('/api/membership/status/:userId', async (req, res) => {
+  try {
+    const user = await userService.getUserById(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found.' });
+    }
+
+    res.json({
+      success: true,
+      membership: {
+        status: user.membership_status || 'none',
+        applied_at: user.membership_applied_at,
+        approved_at: user.membership_approved_at,
+        rejected_reason: user.membership_rejected_reason,
+        details: {
+          name: user.name,
+          email: user.email,
+          student_id: user.student_id,
+          roll_number: user.roll_number,
+          major: user.major,
+          year: user.year,
+          phone: user.phone,
+          nrc: user.nrc
+        }
+      }
+    });
+  } catch (err) {
+    console.error('Membership status error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 
 app.post('/api/auth/login', async (req, res) => {
   try {
@@ -210,14 +351,60 @@ app.post('/api/auth/logout', async (req, res) => {
 });
 
 // ============================================================
+// Thesis Routes (Public & Student)
+// ============================================================
+app.use('/api/theses', thesisRoutes);
+
+// ============================================================
 // Book Routes
 // ============================================================
 
 app.get('/api/books', async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, genre, category } = req.query;
     const books = await bookService.getAllBooks({ search });
-    res.json({ success: true, count: books.length, books });
+    
+    // Also fetch theses and format them as book objects
+    const { theses } = await thesisService.getAllTheses({ search });
+    const formattedTheses = (theses || []).map(t => ({
+      id: t.id,
+      title: t.title,
+      author: t.author,
+      genre: 'Thesis',
+      category: 'Thesis',
+      year: t.year,
+      publication_year: t.year,
+      cover: t.cover_url || '#1e3a5f',
+      cover_url: t.cover_url,
+      isbn: t.student_roll ? `Roll: ${t.student_roll}` : null,
+      class_no: t.major,
+      publisher: `TTU - ${t.major}`,
+      review: t.abstract || `Thesis by ${t.author} (${t.student_roll}) under supervision of ${t.supervisor || 'Department Faculty'}.`,
+      description: t.abstract,
+      total_pages: t.total_pages || 10,
+      totalCopies: 1,
+      availableCopies: 1,
+      borrowedCopies: 0,
+      isThesis: true,
+      major: t.major,
+      student_roll: t.student_roll,
+      supervisor: t.supervisor,
+      pdf_url: t.pdf_url,
+      preview_pdf_url: t.preview_pdf_url,
+      preview_pages_count: t.preview_pages_count || 10,
+    }));
+
+    let combined = [...books, ...formattedTheses];
+
+    // Filter by genre or category if requested
+    if (genre) {
+      combined = combined.filter(b => (b.genre && b.genre.toLowerCase() === genre.toLowerCase()) || (b.category && b.category.toLowerCase() === genre.toLowerCase()));
+    }
+    if (category) {
+      combined = combined.filter(b => (b.category && b.category.toLowerCase() === category.toLowerCase()) || (b.genre && b.genre.toLowerCase() === category.toLowerCase()));
+    }
+
+    res.json({ success: true, count: combined.length, books: combined });
   } catch (err) {
     console.error('Books error:', err);
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -226,11 +413,50 @@ app.get('/api/books', async (req, res) => {
 
 app.get('/api/books/:id', async (req, res) => {
   try {
-    const book = await bookService.getBookById(req.params.id);
-    if (!book) {
-      return res.status(404).json({ success: false, message: 'Book not found.' });
+    // Check if it's a book
+    try {
+      const book = await bookService.getBookById(req.params.id);
+      if (book) {
+        return res.json({ success: true, book });
+      }
+    } catch (bErr) {
+      // Not found in books table, check theses
     }
-    res.json({ success: true, book });
+
+    // Check in theses
+    const thesis = await thesisService.getThesisById(req.params.id);
+    if (thesis) {
+      const formattedThesis = {
+        id: thesis.id,
+        title: thesis.title,
+        author: thesis.author,
+        genre: 'Thesis',
+        category: 'Thesis',
+        year: thesis.year,
+        publication_year: thesis.year,
+        cover: thesis.cover_url || '#1e3a5f',
+        cover_url: thesis.cover_url,
+        isbn: thesis.student_roll ? `Roll: ${thesis.student_roll}` : null,
+        class_no: thesis.major,
+        publisher: `TTU - ${thesis.major}`,
+        review: thesis.abstract || `Thesis by ${thesis.author} (${thesis.student_roll}).`,
+        description: thesis.abstract,
+        total_pages: thesis.total_pages || 10,
+        totalCopies: 1,
+        availableCopies: 1,
+        borrowedCopies: 0,
+        isThesis: true,
+        major: thesis.major,
+        student_roll: thesis.student_roll,
+        supervisor: thesis.supervisor,
+        pdf_url: thesis.pdf_url,
+        preview_pdf_url: thesis.preview_pdf_url,
+        preview_pages_count: thesis.preview_pages_count || 10,
+      };
+      return res.json({ success: true, book: formattedThesis });
+    }
+
+    return res.status(404).json({ success: false, message: 'Book or Thesis not found.' });
   } catch (err) {
     console.error('Book error:', err);
     res.status(500).json({ success: false, message: 'Server error.' });
@@ -277,6 +503,88 @@ app.post('/api/books/:bookId/save', async (req, res) => {
 // Transaction Routes
 // ============================================================
 
+// ============================================================
+// Transaction Routes (Circulation & Requests)
+// ============================================================
+
+/**
+ * POST /api/transactions/request-borrow
+ * Student submits a request to borrow a book
+ */
+app.post('/api/transactions/request-borrow', async (req, res) => {
+  try {
+    const { userId, bookId, notes, durationDays, preferredAccessionNo, studentRealName } = req.body;
+
+    if (!userId || !bookId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'userId and bookId are required' 
+      });
+    }
+
+    const transaction = await transactionService.requestBorrowBook(userId, bookId, {
+      notes,
+      durationDays,
+      preferredAccessionNo,
+      studentRealName
+    });
+
+    res.status(201).json({
+      success: true,
+      message: `Borrow request for "${transaction.book?.title || 'the book'}" submitted successfully! Please wait for librarian approval.`,
+      transaction
+    });
+  } catch (err) {
+    console.error('Request borrow error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * POST /api/transactions/request-return
+ * Student submits a request to return a borrowed book
+ */
+app.post('/api/transactions/request-return', async (req, res) => {
+  try {
+    const { transactionId, returnCondition, notes } = req.body;
+
+    if (!transactionId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'transactionId is required' 
+      });
+    }
+
+    const transaction = await transactionService.requestReturnBook(transactionId, {
+      returnCondition,
+      notes
+    });
+
+    res.json({
+      success: true,
+      message: 'Return request submitted. Please hand the physical book to the circulation desk for verification.',
+      transaction
+    });
+  } catch (err) {
+    console.error('Request return error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+/**
+ * GET /api/transactions/requests/:userId
+ * Get user's borrow and return requests history
+ */
+app.get('/api/transactions/requests/:userId', async (req, res) => {
+  try {
+    const requests = await transactionService.getStudentRequests(req.params.userId);
+    res.json({ success: true, count: requests.length, requests });
+  } catch (err) {
+    console.error('Student requests error:', err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
 app.post('/api/transactions/borrow', async (req, res) => {
   try {
     const { userId, bookId, accessionNo } = req.body;
@@ -289,34 +597,12 @@ app.post('/api/transactions/borrow', async (req, res) => {
     }
 
     const transaction = await transactionService.borrowBook(userId, bookId, accessionNo);
-    
-    // Get full transaction details
     const fullTransaction = await transactionService.getTransactionById(transaction.id);
-
-    // Generate QR code
-    const qrData = {
-      transactionId: transaction.id,
-      userId,
-      bookId,
-      accessionNo: transaction.accession_no,
-      borrowDate: transaction.borrow_date,
-      dueDate: transaction.due_date
-    };
-    
-    const qrCode = await QRCode.toDataURL(JSON.stringify(qrData), {
-      width: 200,
-      margin: 1,
-      color: {
-        dark: '#000000',
-        light: '#ffffff'
-      }
-    });
 
     res.status(201).json({
       success: true,
       message: `Successfully borrowed "${fullTransaction.book?.title}". Due in 7 days.`,
-      transaction: fullTransaction,
-      qrCode
+      transaction: fullTransaction
     });
   } catch (err) {
     console.error('Borrow error:', err);
@@ -438,9 +724,15 @@ app.get('/api/dashboard/:userId', async (req, res) => {
         id: user.id,
         name: user.name,
         student_id: user.student_id,
+        roll_number: user.roll_number,
         email: user.email,
         avatar_url: user.avatar_url,
         role: user.role,
+        membership_status: user.membership_status || 'none',
+        phone: user.phone,
+        major: user.major,
+        year: user.year,
+        nrc: user.nrc,
         activeBorrowCount: stats.active_borrows,
         overdueCount: stats.overdue_count,
         unpaidFines: stats.unpaid_fines
@@ -769,6 +1061,28 @@ app.get('/api/users', async (req, res) => {
   } catch (err) {
     console.error('Users error:', err);
     res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+app.patch('/api/users/:userId', async (req, res) => {
+  try {
+    const { name, phone, major, year, roll_number, student_id, nrc } = req.body;
+    const updates = {};
+    if (name) updates.name = name.trim();
+    if (phone) updates.phone = phone.trim();
+    if (major) updates.major = major.trim();
+    if (year) updates.year = year.trim();
+    if (roll_number || student_id) {
+      updates.roll_number = (roll_number || student_id).trim();
+      updates.student_id = (student_id || roll_number).trim();
+    }
+    if (nrc) updates.nrc = nrc.trim();
+
+    const updated = await userService.updateUser(req.params.userId, updates);
+    res.json({ success: true, message: 'Profile updated successfully!', user: updated });
+  } catch (err) {
+    console.error('Update user error:', err);
+    res.status(400).json({ success: false, message: err.message });
   }
 });
 

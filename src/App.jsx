@@ -10,6 +10,7 @@ import NotificationPage from './pages/NotificationPage';
 import FriendsPage from './pages/FriendsPage';
 import FriendProfilePage from './pages/FriendProfilePage';
 import AdminDashboard from './pages/AdminDashboard';
+import OrionPaxPage from './pages/OrionPaxPage';
 
 function App() {
   return (
@@ -25,6 +26,10 @@ function App() {
         <Route path="/friend-profile/:friendId" element={<FriendProfilePage />} />
         <Route path="/book/:bookId" element={<BookDetailPage />} />
         <Route path="/checkout/:bookId" element={<CheckoutPage />} />
+        <Route path="/ai" element={<OrionPaxPage />} />
+        <Route path="/ai/:userId" element={<OrionPaxPage />} />
+        <Route path="/orionpax" element={<OrionPaxPage />} />
+        <Route path="/orionpax/:userId" element={<OrionPaxPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </Router>

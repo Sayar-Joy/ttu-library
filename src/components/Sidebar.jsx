@@ -14,15 +14,25 @@ function Sidebar({ activeNav, sidebarOpen, setSidebarOpen }) {
       navigate('/bookshelf');
       return;
     }
-    if (id === 'profile' || id === 'mybooks' || id === 'notifications' || id === 'friends') {
+    if (id === 'profile' || id === 'mybooks' || id === 'notifications' || id === 'friends' || id === 'ai') {
       const stored = sessionStorage.getItem('ttu_user');
       if (stored) {
-        const u = JSON.parse(stored);
-        navigate(`/${id}/${u.id}`);
+        try {
+          const u = JSON.parse(stored);
+          navigate(`/${id}/${u.id}`);
+          return;
+        } catch (e) {
+          console.error(e);
+        }
       }
+      navigate(`/${id}`);
       return;
     }
-    if (id === 'logout') navigate('/');
+    if (id === 'logout') {
+      sessionStorage.removeItem('ttu_user');
+      sessionStorage.removeItem('ttu_session');
+      navigate('/');
+    }
   };
 
   const navItems = [

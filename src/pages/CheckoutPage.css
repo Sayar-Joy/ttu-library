@@ -1,440 +1,469 @@
 /* ============================================================
-   Checkout / Borrow Page Styles
+   Checkout / Borrow Request Page Styles
    ============================================================ */
 
 .checkout-page {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: #F5F7FA;
+  background-color: #f8fafc;
+  padding: 40px 20px;
 }
 
 .checkout-main-content {
-  max-width: 760px;
+  max-width: 900px;
   width: 100%;
-  margin: 3rem auto;
-  padding: 2.5rem 2.8rem;
+  margin: 0 auto;
   background: #ffffff;
-  border-radius: 14px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  border-radius: 20px;
+  padding: 36px 40px;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.05);
+  border: 1px solid #e2e8f0;
 }
 
 /* ─── Header ─── */
 .checkout-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 2rem;
+  align-items: flex-start;
+  border-bottom: 1px solid #edf2f7;
+  padding-bottom: 20px;
+  margin-bottom: 28px;
 }
 
 .checkout-header h1 {
   font-size: 1.6rem;
   font-weight: 700;
-  color: #1B1C1D;
+  color: #0f172a;
+  margin: 0;
 }
 
-.checkout-back-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #485E78;
-  text-decoration: none;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.checkout-back-link:hover {
-  text-decoration: underline;
-}
-
-/* ─── Book Card ─── */
-.checkout-book-card {
-  display: flex;
-  gap: 1.8rem;
-  padding: 1.5rem 0;
-  border-bottom: 1px solid #E4E7EC;
-  margin-bottom: 1.5rem;
-}
-
-.checkout-cover-wrapper {
-  flex-shrink: 0;
-  width: 110px;
-  height: 152px;
-  border-radius: 8px;
-  overflow: hidden;
-  background: #485E78;
-  position: relative;
-}
-
-.checkout-cover-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.checkout-book-details {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-}
-
-.checkout-book-title {
-  font-size: 1.4rem;
-  font-weight: 700;
-  color: #1B1C1D;
-  margin: 0 0 4px 0;
-}
-
-.checkout-book-author {
-  font-size: 0.95rem;
-  color: #667085;
-  margin: 0 0 10px 0;
-}
-
-.checkout-meta-row {
-  display: flex;
-  gap: 1.2rem;
-  flex-wrap: wrap;
-  margin-top: 6px;
-}
-
-.checkout-meta-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 0.82rem;
-  color: #43474D;
-}
-
-.checkout-meta-item svg {
-  flex-shrink: 0;
-}
-
-.checkout-meta-label {
-  font-weight: 600;
-  color: #667085;
-}
-
-/* ─── Status Badge ─── */
-.checkout-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.82rem;
-  font-weight: 600;
-}
-
-.status-available {
-  background: #ECFDF5;
-  color: #065F46;
-}
-
-.status-unavailable {
-  background: #FEF2F2;
-  color: #991B1B;
-}
-
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  display: inline-block;
-}
-
-.dot-green {
-  background: #10B981;
-}
-
-.dot-red {
-  background: #EF4444;
-}
-
-/* ─── Copies Info ─── */
-.checkout-copies {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 0.85rem;
-  color: #43474D;
-  margin-top: 10px;
-}
-
-.copies-available {
-  font-weight: 700;
-  color: #065F46;
-}
-
-.copies-sep {
-  color: #C4C6CD;
-}
-
-.copies-total {
-  font-weight: 600;
-}
-
-/* ─── Credits Info ─── */
-.checkout-credits {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #FFFBEB;
-  border: 1px solid #FDE68A;
-  border-radius: 10px;
-  margin-bottom: 1.5rem;
-  font-size: 0.9rem;
-  color: #92400E;
-}
-
-.checkout-credits strong {
-  font-weight: 700;
-}
-
-/* ─── Borrow Cost ─── */
-.checkout-cost {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 16px;
-  background: #F0F9FF;
-  border: 1px solid #BAE6FD;
-  border-radius: 10px;
-  margin-bottom: 1.2rem;
-  font-size: 0.9rem;
-  color: #0369A1;
-}
-
-.checkout-cost strong {
-  font-weight: 700;
-}
-
-/* ─── Actions ─── */
-.checkout-actions {
-  margin-top: 1.5rem;
-}
-
-.btn-borrow,
-.btn-reserve {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 14px 24px;
-  border: none;
-  border-radius: 10px;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: opacity 0.15s, transform 0.1s;
-}
-
-.btn-borrow {
-  background: #366380;
-  color: white;
-}
-
-.btn-borrow:hover:not(:disabled) {
-  background: #2A4F6A;
-}
-
-.btn-borrow:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-reserve {
-  background: #F0F9FF;
-  color: #366380;
-  border: 1.5px solid #BAE6FD;
-}
-
-.btn-reserve:hover:not(:disabled) {
-  background: #E0F2FE;
-}
-
-.btn-reserve:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* ─── Messages ─── */
-.borrow-message {
-  padding: 12px 16px;
-  border-radius: 10px;
-  font-size: 0.9rem;
-  font-weight: 500;
-  margin-top: 1rem;
-}
-
-.msg-success {
-  background: #ECFDF5;
-  color: #065F46;
-  border: 1px solid #A7F3D0;
-}
-
-.msg-error {
-  background: #FEF2F2;
-  color: #991B1B;
-  border: 1px solid #FECACA;
-}
-
-/* ─── Section Divider ─── */
-.checkout-divider {
-  height: 1px;
-  background: #E4E7EC;
-  margin: 1.2rem 0;
-}
-
-/* ─── Loading / Error States ─── */
-.checkout-loading,
-.checkout-error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 60vh;
-}
-
-.checkout-error-inner {
-  text-align: center;
-  padding: 40px;
-}
-
-.checkout-error-inner p {
-  margin-top: 12px;
-  color: #E74C3C;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.checkout-error-inner .retry-btn {
-  margin-top: 16px;
-  padding: 10px 24px;
-  background: #366380;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-/* ─── Responsive ─── */
-@media (max-width: 600px) {
-  .checkout-main-content {
-    margin: 1rem;
-    padding: 1.5rem;
-  }
-
-  .checkout-book-card {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-
-  .checkout-cover-wrapper {
-    width: 90px;
-    height: 126px;
-  }
-}
-
-/* ─── QR Code Modal ─── */
-.qr-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-}
-
-.qr-modal-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  max-width: 400px;
-  width: 90%;
-  text-align: center;
-  position: relative;
-}
-
-.qr-modal-close {
-  position: absolute;
-  top: 1rem;
-  right: 1rem;
-  background: none;
-  border: none;
-  font-size: 1.5rem;
-  cursor: pointer;
-  color: #667085;
-}
-
-.qr-modal-close:hover {
-  color: #1B1C1D;
-}
-
-.qr-code-container {
-  margin: 1.5rem 0;
-  display: flex;
-  justify-content: center;
-}
-
-.qr-image {
-  width: 200px;
-  height: 200px;
-  object-fit: contain;
-}
-
-.qr-info {
-  font-size: 0.9rem;
-  color: #43474D;
-  line-height: 1.6;
-  margin: 1rem 0;
-}
-
-/* ─── Credit Info ─── */
-.credit-info {
-  background: #F0F9FF;
-  border: 1px solid #BAE6FD;
-  border-radius: 10px;
-  padding: 1rem;
-  margin-top: 1rem;
-}
-
-.credit-info h3 {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #1B1C1D;
-  margin: 0 0 0.5rem 0;
-}
-
-.credit-info p {
-  font-size: 0.9rem;
-  color: #43474D;
-  margin: 0.3rem 0;
-}
-
-/* ─── Back Button ─── */
 .btn-back {
-  background: #F5F7FA;
-  color: #43474D;
-  border: 1px solid #E4E7EC;
-  padding: 10px 20px;
-  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
-  text-decoration: none;
-  display: inline-block;
+  transition: all 0.2s ease;
 }
 
 .btn-back:hover {
-  background: #E4E7EC;
-  color: #1B1C1D;
+  background: #e2e8f0;
+  color: #1e293b;
+}
+
+/* ─── Main Grid Layout ─── */
+.checkout-main {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 36px;
+  align-items: start;
+}
+
+/* ─── Left Column: Book Card ─── */
+.checkout-book-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.checkout-cover-container {
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+  background: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.checkout-cover-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.checkout-cover-fallback {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  padding: 16px;
+  text-align: center;
+  gap: 8px;
+}
+
+.checkout-cover-fallback span:first-child {
+  font-size: 32px;
+}
+
+.checkout-genre-badge {
+  display: inline-block;
+  align-self: flex-start;
+  background: #e0e7ff;
+  color: #4338ca;
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.checkout-book-details h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 6px 0 4px;
+  line-height: 1.35;
+}
+
+.checkout-author {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0 0 16px;
+}
+
+.checkout-meta-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  background: #ffffff;
+  padding: 14px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.meta-label {
+  font-size: 11px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.meta-value {
+  font-size: 12.5px;
+  color: #1e293b;
+  font-weight: 600;
+}
+
+.text-green {
+  color: #16a34a !important;
+}
+
+.text-amber {
+  color: #d97706 !important;
+}
+
+/* ─── Right Column: Request Form ─── */
+.checkout-form-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-heading {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 18px;
+}
+
+.checkout-membership-alert {
+  background: #fef3c7;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.checkout-membership-alert strong {
+  color: #92400e;
+  font-size: 13.5px;
+  display: block;
+}
+
+.checkout-membership-alert p {
+  color: #b45309;
+  font-size: 12.5px;
+  margin: 2px 0 0;
+}
+
+.btn-alert-action {
+  background: #d97706;
+  color: #fff;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.checkout-error-banner {
+  background: #fee2e2;
+  border: 1px solid #fca5a5;
+  color: #991b1b;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+
+/* Borrower Summary Box */
+.borrower-summary-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 20px;
+}
+
+.borrower-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 8px;
+}
+
+.borrower-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 14px;
+  font-size: 13px;
+  color: #1e293b;
+}
+
+.borrower-grid .label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Form Controls */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #334155;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  font-size: 14px;
+  color: #0f172a;
+  background: #fff;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  box-sizing: border-box;
+}
+
+.form-control:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.loan-policy-box {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  background: #f1f5f9;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  color: #475569;
+  line-height: 1.45;
+  margin-bottom: 24px;
+}
+
+.policy-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.btn-submit-request {
+  flex: 1;
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 13px 20px;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-submit-request:hover:not(:disabled) {
+  background: #4338ca;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+}
+
+.btn-submit-request:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-cancel {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 13px 20px;
+  font-size: 14.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn-cancel:hover {
+  background: #e2e8f0;
+}
+
+/* ─── Success Card ─── */
+.checkout-success-card {
+  text-align: center;
+  padding: 24px 16px;
+}
+
+.success-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+.checkout-success-card h3 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 10px;
+}
+
+.checkout-success-card p {
+  font-size: 14px;
+  color: #475569;
+  line-height: 1.5;
+  margin: 0 0 20px;
+}
+
+.success-details-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 16px;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13.5px;
+}
+
+.status-pill.pending {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.success-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.success-actions .btn-primary {
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.success-actions .btn-secondary {
+  background: #f8fafc;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.checkout-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid #e2e8f0;
+  border-top-color: #4f46e5;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 800px) {
+  .checkout-main {
+    grid-template-columns: 1fr;
+  }
+  .checkout-main-content {
+    padding: 24px 20px;
+  }
 }

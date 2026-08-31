@@ -30,6 +30,8 @@ function NotificationPage() {
     if (id === 'bookshelf') navigate('/bookshelf');
     if (id === 'mybooks') navigate(`/mybooks/${userId}`);
     if (id === 'profile') navigate(`/profile/${userId}`);
+    if (id === 'friends') navigate(`/friends/${userId}`);
+    if (id === 'ai') navigate(userId ? `/ai/${userId}` : '/ai');
     if (id === 'logout') navigate('/');
   };
 

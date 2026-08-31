@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
+import MembershipModal from '../components/MembershipModal';
 import './ProfilePage.css';
 
 const API_BASE = '/api';
@@ -13,14 +14,30 @@ function ProfilePage() {
   const [error, setError] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeNav, setActiveNav] = useState('profile');
+  const [isMembershipModalOpen, setIsMembershipModalOpen] = useState(false);
 
   useEffect(() => {
+    if (!userId || userId === 'undefined') {
+      const stored = sessionStorage.getItem('ttu_user');
+      if (stored) {
+        try {
+          const u = JSON.parse(stored);
+          if (u?.id) {
+            navigate(`/profile/${u.id}`, { replace: true });
+            return;
+          }
+        } catch { /* ignore */ }
+      }
+      navigate('/');
+      return;
+    }
     fetchProfile();
   }, [userId]);
 
   const fetchProfile = async () => {
     try {
       setLoading(true);
+      setError('');
       const profileRes = await fetch(`${API_BASE}/profile/${userId}`);
       const profileData = await profileRes.json();
 
@@ -58,6 +75,22 @@ function ProfilePage() {
       if (stored) {
         const u = JSON.parse(stored);
         navigate(`/notifications/${u.id}`);
+      }
+    }
+    if (id === 'friends') {
+      const stored = sessionStorage.getItem('ttu_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        navigate(`/friends/${u.id}`);
+      }
+    }
+    if (id === 'ai') {
+      const stored = sessionStorage.getItem('ttu_user');
+      if (stored) {
+        const u = JSON.parse(stored);
+        navigate(`/ai/${u.id}`);
+      } else {
+        navigate('/ai');
       }
     }
     if (id === 'logout') navigate('/');
@@ -140,7 +173,13 @@ function ProfilePage() {
               <BellIcon2 />
             </button>
             <div className="header-avatar">
-              <div className="avatar-circle">{profile.avatar || '??'}</div>
+              <div className="avatar-circle" style={{ overflow: 'hidden' }}>
+                {profile.avatar && (profile.avatar.startsWith('http') || profile.avatar.startsWith('data:')) ? (
+                  <img src={profile.avatar} alt={profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  profile.avatar || (profile.name ? profile.name.slice(0, 2).toUpperCase() : '??')
+                )}
+              </div>
             </div>
           </div>
         </header>
@@ -150,7 +189,13 @@ function ProfilePage() {
           {/* Profile Header */}
           <div className="profile-header">
             <div className="profile-header-left">
-              <div className="profile-avatar-lg">{profile.avatar || '??'}</div>
+              <div className="profile-avatar-lg" style={{ overflow: 'hidden' }}>
+                {profile.avatar && (profile.avatar.startsWith('http') || profile.avatar.startsWith('data:')) ? (
+                  <img src={profile.avatar} alt={profile.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                ) : (
+                  profile.avatar || (profile.name ? profile.name.slice(0, 2).toUpperCase() : '??')
+                )}
+              </div>
               <div className="profile-header-info">
                 <h1>{profile.name}</h1>
                 <span className="profile-identifier">{profile.identifier}</span>
@@ -199,6 +244,84 @@ function ProfilePage() {
                   <span className="info-value">{profile.activeReserveCount || 0} books</span>
                 </div>
               </div>
+
+              {/* Library Membership Card */}
+              <div className="profile-card" style={{ marginTop: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <h3 style={{ margin: 0 }}>Library Membership</h3>
+                  <span style={{
+                    fontSize: '11px',
+                    fontWeight: 600,
+                    textTransform: 'uppercase',
+                    padding: '3px 8px',
+                    borderRadius: '12px',
+                    background: profile.membership_status === 'approved'
+                      ? '#d1fae5'
+                      : profile.membership_status === 'pending'
+                      ? '#fef3c7'
+                      : profile.membership_status === 'rejected'
+                      ? '#fee2e2'
+                      : '#f3f4f6',
+                    color: profile.membership_status === 'approved'
+                      ? '#065f46'
+                      : profile.membership_status === 'pending'
+                      ? '#92400e'
+                      : profile.membership_status === 'rejected'
+                      ? '#991b1b'
+                      : '#4b5563',
+                  }}>
+                    {profile.membership_status === 'approved'
+                      ? '✓ Approved'
+                      : profile.membership_status === 'pending'
+                      ? '⏳ Pending'
+                      : profile.membership_status === 'rejected'
+                      ? '✕ Rejected'
+                      : 'Not Applied'}
+                  </span>
+                </div>
+
+                <div className="profile-card-row">
+                  <span className="info-label">Roll Number</span>
+                  <span className="info-value" style={{ fontFamily: 'monospace' }}>{profile.roll_number || profile.student_id || '—'}</span>
+                </div>
+                <div className="profile-card-row">
+                  <span className="info-label">Major</span>
+                  <span className="info-value">{profile.major || '—'}</span>
+                </div>
+                <div className="profile-card-row">
+                  <span className="info-label">Year</span>
+                  <span className="info-value">{profile.year || '—'}</span>
+                </div>
+                <div className="profile-card-row">
+                  <span className="info-label">Phone</span>
+                  <span className="info-value">{profile.phone || '—'}</span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => setIsMembershipModalOpen(true)}
+                  style={{
+                    marginTop: '14px',
+                    width: '100%',
+                    padding: '8px 14px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    background: profile.membership_status === 'approved' ? '#f3f4f6' : '#4f46e5',
+                    color: profile.membership_status === 'approved' ? '#1f2937' : '#fff',
+                    border: profile.membership_status === 'approved' ? '1px solid #e5e7eb' : 'none',
+                  }}
+                >
+                  {profile.membership_status === 'approved'
+                    ? 'View Digital Library Card'
+                    : profile.membership_status === 'pending'
+                    ? 'View Application Status'
+                    : profile.membership_status === 'rejected'
+                    ? 'Fix & Resubmit Form'
+                    : 'Apply for Membership'}
+                </button>
+              </div>
             </div>
 
             {/* Right Column — Borrowing Summary */}
@@ -238,6 +361,18 @@ function ProfilePage() {
           </div>
         </footer>
       </div>
+
+      {/* Membership Modal */}
+      {profile && (
+        <MembershipModal
+          isOpen={isMembershipModalOpen}
+          onClose={() => setIsMembershipModalOpen(false)}
+          user={profile}
+          onSuccess={(updatedUser) => {
+            fetchProfile();
+          }}
+        />
+      )}
     </div>
   );
 }
