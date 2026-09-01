@@ -1,15 +1,39 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import './Sidebar.css';
+import {
+  LayoutGrid,
+  BookOpen,
+  Bell,
+  Sparkles,
+  User,
+  Users,
+  ShieldCheck,
+  Settings,
+  LogOut,
+} from 'lucide-react';
+import { cn } from '../lib/utils';
 
 function Sidebar({ activeNav, sidebarOpen, setSidebarOpen }) {
   const navigate = useNavigate();
 
   const closeSidebar = () => setSidebarOpen(false);
-  
+
+  const storedUser = sessionStorage.getItem('ttu_user');
+  let isLibrarian = false;
+  if (storedUser) {
+    try {
+      const u = JSON.parse(storedUser);
+      isLibrarian = u.role === 'librarian';
+    } catch (e) {}
+  }
+
   const handleNavClick = (id) => {
     setSidebarOpen(false);
-    
+
+    if (id === 'admin') {
+      navigate('/admin');
+      return;
+    }
     if (id === 'bookshelf') {
       navigate('/bookshelf');
       return;
@@ -36,53 +60,85 @@ function Sidebar({ activeNav, sidebarOpen, setSidebarOpen }) {
   };
 
   const navItems = [
-    { id: 'bookshelf', label: 'Bookshelf', icon: BookshelfIcon },
-    { id: 'mybooks', label: 'My Books', icon: BooksIcon },
-    { id: 'notifications', label: 'Notifications', icon: BellIcon },
-    { id: 'ai', label: 'OrionPax AI', icon: AIIcon },
-    { id: 'profile', label: 'Profile', icon: ProfileIcon },
-    { id: 'friends', label: 'Friends', icon: FriendsIcon },
+    { id: 'bookshelf', label: 'Bookshelf', icon: LayoutGrid },
+    { id: 'mybooks', label: 'My Books', icon: BookOpen },
+    { id: 'notifications', label: 'Notifications', icon: Bell },
+    { id: 'ai', label: 'OrionPax AI', icon: Sparkles },
+    { id: 'profile', label: 'Profile', icon: User },
+    { id: 'friends', label: 'Friends', icon: Users },
+    ...(isLibrarian ? [{ id: 'admin', label: 'Admin Dashboard', icon: ShieldCheck, highlight: true }] : []),
   ];
 
   const bottomNavItems = [
-    { id: 'settings', label: 'Settings', icon: SettingsIcon },
-    { id: 'logout', label: 'Logout', icon: LogoutIcon },
+    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'logout', label: 'Logout', icon: LogOut },
   ];
 
   return (
     <>
       {/* Mobile sidebar overlay */}
-      <div className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`} onClick={closeSidebar} />
+      <div
+        className={cn(
+          'fixed inset-0 bg-black/50 z-[90] transition-opacity duration-300 lg:hidden',
+          sidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        )}
+        onClick={closeSidebar}
+      />
 
       {/* Sidebar */}
-      <aside className={`app-sidebar ${sidebarOpen ? 'open' : ''}`}>
-        <div className="sidebar-top">
-          <div className="sidebar-brand">
-            <h1 className="sidebar-title">TTU Library</h1>
-            <p className="sidebar-subtitle">Cozy Study Space</p>
+      <aside
+        className={cn(
+          'fixed left-0 top-0 w-64 h-screen bg-sidebar flex flex-col justify-between z-[100] transition-transform duration-300 ease-in-out',
+          'lg:translate-x-0',
+          sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
+        )}
+      >
+        {/* Top section */}
+        <div className="px-6 pt-8 pb-4">
+          {/* Brand */}
+          <div className="mb-10">
+            <h1 className="text-2xl font-bold text-sidebar-foreground tracking-tight leading-tight">
+              TTU Library
+            </h1>
+            <p className="text-[13px] text-sidebar-foreground/70 mt-1">
+              Cozy Study Space
+            </p>
           </div>
-          <nav className="sidebar-nav">
+
+          {/* Navigation */}
+          <nav className="flex flex-col gap-1">
             {navItems.map(item => (
               <button
                 key={item.id}
-                className={`sidebar-nav-item ${activeNav === item.id ? 'active' : ''}`}
+                className={cn(
+                  'flex items-center gap-3 px-4 py-2.5 rounded-lg text-[15px] font-medium text-left w-full border-none transition-all duration-200',
+                  'text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent',
+                  activeNav === item.id && 'bg-sidebar-accent text-sidebar-accent-foreground',
+                  item.highlight && 'mt-2 bg-brand-yellow/15 border border-brand-yellow/25 text-brand-yellow-100 hover:bg-brand-yellow/25',
+                  item.highlight && activeNav === item.id && 'bg-brand-yellow/25'
+                )}
                 onClick={() => handleNavClick(item.id)}
               >
-                <item.icon />
+                <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
                 <span>{item.label}</span>
               </button>
             ))}
           </nav>
         </div>
-        <div className="sidebar-bottom">
-          <div className="sidebar-divider" />
+
+        {/* Bottom section */}
+        <div className="px-6 pb-8">
+          <div className="h-px bg-sidebar-foreground/15 mb-2" />
           {bottomNavItems.map(item => (
             <button
               key={item.id}
-              className="sidebar-nav-item"
+              className={cn(
+                'flex items-center gap-3 px-4 py-2.5 rounded-lg text-[15px] font-medium text-left w-full border-none transition-all duration-200',
+                'text-sidebar-foreground/75 hover:text-sidebar-foreground hover:bg-sidebar-accent'
+              )}
               onClick={() => handleNavClick(item.id)}
             >
-              <item.icon />
+              <item.icon className="w-[18px] h-[18px] flex-shrink-0" />
               <span>{item.label}</span>
             </button>
           ))}
@@ -91,15 +147,5 @@ function Sidebar({ activeNav, sidebarOpen, setSidebarOpen }) {
     </>
   );
 }
-
-/* ─── SVG Icons ─── */
-function BookshelfIcon() { return (<svg width="22" height="16" viewBox="0 0 22 16" fill="none"><rect x="1" y="1" width="8" height="6" rx="1" stroke="white" strokeWidth="1.5"/><rect x="13" y="1" width="8" height="6" rx="1" stroke="white" strokeWidth="1.5"/><rect x="1" y="9" width="8" height="6" rx="1" stroke="white" strokeWidth="1.5"/><rect x="13" y="9" width="8" height="6" rx="1" stroke="white" strokeWidth="1.5"/></svg>); }
-function BooksIcon() { return (<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="2" width="6" height="14" rx="1" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5"/><rect x="10" y="4" width="7" height="14" rx="1" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5"/><line x1="6" y1="6" x2="6" y2="12" stroke="rgba(255,255,255,0.8)" strokeWidth="1"/><line x1="13.5" y1="8" x2="13.5" y2="15" stroke="rgba(255,255,255,0.8)" strokeWidth="1"/></svg>); }
-function BellIcon() { return (<svg width="16" height="20" viewBox="0 0 16 20" fill="none"><path d="M6 4C6 3.44772 6.44772 3 7 3H9C9.55228 3 10 3.44772 10 4V4.5812C12.1682 5.03092 13.75 6.91008 13.75 9.16667V12.3206L15.2803 13.8509C15.4362 14.0068 15.504 14.2332 15.4493 14.4405C15.3946 14.6478 15.2275 14.7917 15.0243 14.7917H0.97566C0.772492 14.7917 0.605384 14.6478 0.550688 14.4405C0.496013 14.2332 0.563788 14.0068 0.71967 13.8509L2.25 12.3206V9.16667C2.25 6.91008 3.83185 5.03092 6 4.5812V4Z" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5"/><path d="M6 17C6 17.5523 6.44772 18 7 18H9C9.55228 18 10 17.5523 10 17" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round"/></svg>); }
-function AIIcon() { return (<svg width="22" height="19" viewBox="0 0 22 19" fill="none"><circle cx="11" cy="9.5" r="8.5" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5"/><path d="M11 4V15M5 9.5H17" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round"/><circle cx="11" cy="9.5" r="2.5" stroke="rgba(255,255,255,0.8)" strokeWidth="1"/></svg>); }
-function ProfileIcon() { return (<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="4.5" r="3.5" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5"/><path d="M1.5 14.5C1.5 11.1863 4.41015 8.5 8 8.5C11.5899 8.5 14.5 11.1863 14.5 14.5" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round"/></svg>); }
-function FriendsIcon() { return (<svg width="24" height="18" viewBox="0 0 24 18" fill="none"><circle cx="9" cy="5" r="4" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5"/><circle cx="18" cy="5" r="3" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5"/><path d="M1 16C1 12.6863 3.68629 10 7 10H11C14.3137 10 17 12.6863 17 16" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round"/><path d="M17 16C17 13.7909 18.7909 12 21 12H21.5" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round"/></svg>); }
-function SettingsIcon() { return (<svg width="20.1" height="20" viewBox="0 0 21 20" fill="none"><circle cx="10.5" cy="10" r="3" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5"/><path d="M10.5 1.5V3.5M10.5 16.5V18.5M2 10H4M17 10H19M4.49 4.49L5.9 5.9M15.1 14.6L16.51 16.01M4.49 15.51L5.9 14.1M15.1 5.4L16.51 3.99" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round"/></svg>); }
-function LogoutIcon() { return (<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M7 2H3C2.44772 2 2 2.44772 2 3V15C2 15.5523 2.44772 16 3 16H7" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round"/><path d="M12 13L16 9L12 5" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/><path d="M16 9H7" stroke="rgba(255,255,255,0.8)" strokeWidth="1.5" strokeLinecap="round"/></svg>); }
 
 export default Sidebar;

@@ -148,13 +148,29 @@ function NotificationPage() {
   const getNotificationIcon = (type) => {
     switch (type) {
       case 'borrow_success':
+      case 'borrow_approved':
         return '📚';
+      case 'borrow_requested':
+        return '📥';
+      case 'borrow_rejected':
+        return '❌';
+      case 'renewal_requested':
+        return '⏳';
+      case 'renewal_approved':
+        return '🔄';
+      case 'renewal_rejected':
+        return '⚠️';
+      case 'return_requested':
+        return '📦';
+      case 'return_approved':
+      case 'return_success':
+        return '✅';
+      case 'return_rejected':
+        return '⚠️';
       case 'due_soon':
         return '⏰';
       case 'overdue_fine':
         return '💰';
-      case 'return_success':
-        return '✅';
       default:
         return '📬';
     }

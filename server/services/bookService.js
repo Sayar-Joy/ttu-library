@@ -56,6 +56,7 @@ export async function getBookById(bookId) {
         status,
         date_acquired,
         price,
+        how_obtained,
         remark
       )
     `)

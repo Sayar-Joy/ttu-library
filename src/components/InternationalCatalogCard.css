@@ -1,0 +1,909 @@
+/* ============================================================
+   International Standard Library Catalog Component Styles
+   ============================================================ */
+
+.intl-catalog-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  font-family: var(--font, 'Hanken Grotesk', -apple-system, BlinkMacSystemFont, sans-serif);
+}
+
+/* Header */
+.intl-catalog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #F3F4F6;
+}
+
+.intl-catalog-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.intl-catalog-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: #1E293B;
+  letter-spacing: -0.01em;
+}
+
+.intl-badge-icon {
+  font-size: 20px;
+}
+
+.intl-catalog-standard-tag {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: #F1F5F9;
+  color: #475569;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid #E2E8F0;
+}
+
+.intl-catalog-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.intl-btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: #F8FAFC;
+  color: #334155;
+  border: 1px solid #CBD5E1;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.intl-btn-action:hover {
+  background: #366380;
+  color: #FFFFFF;
+  border-color: #366380;
+  box-shadow: 0 2px 8px rgba(54, 99, 128, 0.2);
+}
+
+/* Tabs */
+.intl-catalog-tabs {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.intl-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #F8FAFC;
+  color: #64748B;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.intl-tab-btn:hover {
+  color: #1E293B;
+  background: #F1F5F9;
+}
+
+.intl-tab-btn.active {
+  background: #1E293B;
+  color: #FFFFFF;
+  border-color: #1E293B;
+  box-shadow: 0 4px 12px rgba(30, 41, 59, 0.15);
+}
+
+.tab-icon {
+  font-size: 14px;
+}
+
+/* ============================================================
+   TAB 1: 3x5 STANDARD LIBRARY CATALOG CARD (ISBD / AACR2)
+   ============================================================ */
+.intl-card-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.intl-catalog-card-paper {
+  position: relative;
+  background: #FFFEFA;
+  border: 1px solid #E2D9C8;
+  border-radius: 8px;
+  padding: 36px 40px 48px 40px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06), inset 0 0 40px rgba(245, 235, 220, 0.3);
+  font-family: 'Times New Roman', Times, 'Georgia', serif;
+  color: #1C1917;
+  line-height: 1.55;
+  font-size: 15px;
+  min-height: 280px;
+}
+
+/* Call Number in Upper Left */
+.intl-card-callno {
+  position: absolute;
+  top: 32px;
+  left: 36px;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 14px;
+  color: #0F172A;
+  line-height: 1.3;
+  width: 100px;
+}
+
+.callno-class {
+  color: #0369A1;
+}
+
+.callno-author {
+  color: #334155;
+}
+
+.callno-year {
+  color: #64748B;
+}
+
+/* Main Content with hanging indent */
+.intl-card-content {
+  margin-left: 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.intl-card-author-entry {
+  font-size: 17px;
+  letter-spacing: 0.01em;
+  color: #0F172A;
+}
+
+.intl-card-roll {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: #059669;
+}
+
+.intl-card-body-text {
+  text-indent: 24px;
+  font-size: 15.5px;
+}
+
+.intl-card-title {
+  font-weight: 700;
+}
+
+.intl-card-uniform-title {
+  font-style: italic;
+  color: #475569;
+}
+
+.intl-card-imprint {
+  font-weight: 550;
+}
+
+.intl-card-collation {
+  text-indent: 24px;
+  color: #334155;
+}
+
+.intl-card-notes {
+  margin-top: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 14px;
+  color: #334155;
+}
+
+.card-note-item {
+  text-indent: 24px;
+  font-style: italic;
+}
+
+.card-note-summary {
+  text-indent: 24px;
+  line-height: 1.5;
+  color: #44403C;
+}
+
+.intl-card-isbn {
+  text-indent: 24px;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #1E293B;
+  margin-top: 4px;
+}
+
+.intl-card-tracings {
+  margin-top: 14px;
+  padding-top: 10px;
+  border-top: 1px dashed #D6CEBE;
+  font-size: 13.5px;
+  color: #57534E;
+  text-indent: 24px;
+}
+
+.tracing-num, .tracing-roman {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.intl-card-holdings-bar {
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font, sans-serif);
+  font-size: 12px;
+}
+
+.card-accession-tags {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.acc-label {
+  font-weight: 700;
+  color: #78716C;
+  font-family: var(--font, sans-serif);
+}
+
+.acc-pill {
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.acc-available {
+  background: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+}
+
+.acc-borrowed {
+  background: #FEE2E2;
+  color: #B91C1C;
+  border: 1px solid #FCA5A5;
+}
+
+/* Hole punch */
+.intl-card-hole-punch {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.hole-circle {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  border: 2px solid #CBD5E1;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.intl-card-footer-tip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  font-size: 12.5px;
+  color: #64748B;
+  flex-wrap: wrap;
+}
+
+.intl-copy-mini-btn {
+  padding: 6px 12px;
+  background: #FFFFFF;
+  color: #0F172A;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.intl-copy-mini-btn:hover {
+  background: #0F172A;
+  color: #FFFFFF;
+  border-color: #0F172A;
+}
+
+/* ============================================================
+   TAB 2: STRUCTURED BIBLIOGRAPHIC SHEET
+   ============================================================ */
+.intl-bib-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bib-sheet-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.bib-section-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bib-section-card.full-width {
+  grid-column: span 2;
+}
+
+.bib-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bib-area-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #366380;
+  color: #FFFFFF;
+  text-transform: uppercase;
+}
+
+.bib-section-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: #1E293B;
+}
+
+.bib-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bib-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 6px 0;
+  border-bottom: 1px solid #EEF2F6;
+  font-size: 13px;
+}
+
+.bib-row:last-child {
+  border-bottom: none;
+}
+
+.bib-label {
+  color: #64748B;
+  font-weight: 600;
+  flex: 1;
+}
+
+.bib-value {
+  color: #0F172A;
+  font-weight: 600;
+  text-align: right;
+  flex: 1.3;
+}
+
+.bib-value.callout-value {
+  color: #0284C7;
+  font-weight: 700;
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 14px;
+}
+
+.bib-value.mono-value {
+  font-family: 'Courier New', Courier, monospace;
+}
+
+.bib-value.font-title {
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.bib-value.translation-badge {
+  color: #059669;
+  background: #D1FAE5;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-block;
+}
+
+.bib-value.category-pill {
+  background: #E0E7FF;
+  color: #3730A3;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  display: inline-block;
+}
+
+.bib-notes-body {
+  padding: 4px 0;
+}
+
+.bib-summary-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #334155;
+}
+
+/* ============================================================
+   TAB 3: MARC 21 FORMAT
+   ============================================================ */
+.intl-marc-view, .intl-dc-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.marc-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  background: #F1F5F9;
+  border-radius: 10px;
+  border: 1px solid #E2E8F0;
+  flex-wrap: wrap;
+}
+
+.marc-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: #334155;
+}
+
+.marc-info span {
+  font-size: 12px;
+  color: #64748B;
+}
+
+.marc-table-container, .dc-table-container, .holdings-table-container {
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  overflow-x: auto;
+  background: #FFFFFF;
+}
+
+.marc-table, .dc-table, .holdings-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+  text-align: left;
+}
+
+.marc-table th, .dc-table th, .holdings-table th {
+  background: #F8FAFC;
+  color: #475569;
+  font-weight: 700;
+  padding: 10px 14px;
+  border-bottom: 1px solid #E2E8F0;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.marc-table td, .dc-table td, .holdings-table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid #F1F5F9;
+  color: #1E293B;
+}
+
+.marc-table tbody tr:hover, .dc-table tbody tr:hover, .holdings-table tbody tr:hover {
+  background: #F8FAFC;
+}
+
+.marc-control-row {
+  background: #FAFAFA;
+}
+
+.marc-tag .tag-pill {
+  background: #1E293B;
+  color: #F8FAFC;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-family: 'Courier New', Courier, monospace;
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.marc-ind .ind-code {
+  font-family: 'Courier New', Courier, monospace;
+  color: #64748B;
+  font-weight: 700;
+}
+
+.marc-desc {
+  color: #64748B;
+  font-size: 12px;
+}
+
+.marc-content {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #0F172A;
+}
+
+.subfield-delimiter {
+  color: #DC2626;
+  font-weight: 800;
+}
+
+/* Dublin Core */
+.dc-term {
+  color: #0284C7;
+  font-weight: 700;
+}
+
+.dc-label {
+  color: #64748B;
+  font-weight: 600;
+}
+
+.dc-value {
+  color: #0F172A;
+  line-height: 1.4;
+}
+
+/* ============================================================
+   TAB 5: HOLDINGS & COPIES
+   ============================================================ */
+.intl-holdings-view {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.holdings-header-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.holding-stat-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.holding-stat-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.holding-stat-val {
+  font-size: 18px;
+  font-weight: 800;
+  color: #0F172A;
+}
+
+.available-text {
+  color: #16A34A;
+}
+
+.borrowed-text {
+  color: #DC2626;
+}
+
+.status-badge-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.badge-available {
+  background: #DCFCE7;
+  color: #15803D;
+}
+
+.badge-borrowed {
+  background: #FEE2E2;
+  color: #B91C1C;
+}
+
+.bold-text {
+  font-weight: 700;
+}
+
+.barcode-icon {
+  font-size: 14px;
+}
+
+.remark-cell {
+  color: #64748B;
+  font-size: 12px;
+}
+
+/* ============================================================
+   CITATION MODAL
+   ============================================================ */
+.citation-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.citation-modal {
+  background: #FFFFFF;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 600px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  0% { transform: scale(0.96); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.citation-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.citation-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0F172A;
+}
+
+.citation-modal-title h3 {
+  margin: 0;
+  font-size: 18px;
+}
+
+.citation-close-btn {
+  background: transparent;
+  border: none;
+  font-size: 24px;
+  color: #94A3B8;
+  cursor: pointer;
+  padding: 4px;
+  line-height: 1;
+  transition: color 0.15s ease;
+}
+
+.citation-close-btn:hover {
+  color: #0F172A;
+}
+
+.citation-modal-body {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.citation-subtitle {
+  margin: 0;
+  font-size: 14px;
+  color: #64748B;
+}
+
+.citation-style-selector {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.citation-style-pill {
+  padding: 8px 14px;
+  background: #F1F5F9;
+  color: #475569;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.citation-style-pill:hover {
+  background: #E2E8F0;
+  color: #0F172A;
+}
+
+.citation-style-pill.active {
+  background: #366380;
+  color: #FFFFFF;
+  border-color: #366380;
+}
+
+.citation-preview-box {
+  background: #F8FAFC;
+  border: 1px solid #CBD5E1;
+  border-radius: 12px;
+  padding: 16px;
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+}
+
+.citation-text {
+  margin: 0;
+  font-family: inherit;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #0F172A;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.citation-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.citation-copy-btn {
+  padding: 12px 24px;
+  background: #366380;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.citation-copy-btn:hover {
+  background: #2D526B;
+}
+
+/* ============================================================
+   PRINT STYLES (Print Card option)
+   ============================================================ */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .intl-catalog-card-paper, .intl-catalog-card-paper * {
+    visibility: visible;
+  }
+  .intl-catalog-card-paper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 5in;
+    height: 3in;
+    box-shadow: none;
+    border: 1px solid #999;
+    padding: 18px 24px;
+    font-size: 11pt;
+  }
+  .intl-card-hole-punch {
+    display: none;
+  }
+}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+  .intl-catalog-container {
+    padding: 16px;
+  }
+  
+  .intl-catalog-card-paper {
+    padding: 24px 16px 40px 16px;
+  }
+
+  .intl-card-callno {
+    position: static;
+    width: 100%;
+    margin-bottom: 12px;
+    flex-direction: row;
+    gap: 8px;
+  }
+
+  .intl-card-content {
+    margin-left: 0;
+  }
+
+  .bib-sheet-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .bib-section-card.full-width {
+    grid-column: span 1;
+  }
+
+  .holdings-header-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

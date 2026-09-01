@@ -3,6 +3,23 @@ import { useNavigate } from 'react-router-dom';
 import AddThesisModal from '../components/AddThesisModal';
 import ThesisPdfViewer from '../components/ThesisPdfViewer';
 import './AdminDashboard.css';
+import { 
+  LayoutDashboard, 
+  GraduationCap, 
+  CreditCard, 
+  Inbox, 
+  Clock, 
+  RotateCcw, 
+  Users, 
+  BookOpen, 
+  Package, 
+  CircleDollarSign,
+  LogOut,
+  ExternalLink,
+  Plus,
+  Menu,
+  Sparkles
+} from 'lucide-react';
 
 const API = '/api/admin';
 
@@ -56,12 +73,13 @@ export default function AdminDashboard() {
   const [stats, setStats] = useState({ 
     students: 0, 
     books: 0, 
-    theses: 0,
+    theses: 0, 
     copies: 0, 
     activeBorrows: 0, 
     unpaidFines: 0, 
     pendingMemberships: 0,
     pendingBorrowRequests: 0,
+    pendingRenewalRequests: 0,
     pendingReturnRequests: 0
   });
 
@@ -83,11 +101,12 @@ export default function AdminDashboard() {
     if (!user) return;
     (async () => {
       try {
-        const [usersRes, invRes, memRes, borrowReqRes, returnReqRes, thesesStatsRes] = await Promise.all([
+        const [usersRes, invRes, memRes, borrowReqRes, renewalReqRes, returnReqRes, thesesStatsRes] = await Promise.all([
           apiFetch(`${API}/users?limit=1`),
           apiFetch(`${API}/inventory?limit=1`),
           apiFetch(`${API}/memberships?status=pending&limit=1`).catch(() => ({ pending_count: 0 })),
           apiFetch(`${API}/requests/borrow?status=borrow_requested&limit=1`).catch(() => ({ pending_count: 0 })),
+          apiFetch(`${API}/requests/renewal?status=renewal_requested&limit=1`).catch(() => ({ pending_count: 0 })),
           apiFetch(`${API}/requests/return?status=return_requested&limit=1`).catch(() => ({ pending_count: 0 })),
           apiFetch(`${API}/theses-stats`).catch(() => ({ stats: { totalTheses: 0 } })),
         ]);
@@ -101,6 +120,7 @@ export default function AdminDashboard() {
           activeBorrows: healthRes.transactions || 0,
           pendingMemberships: memRes.pending_count || 0,
           pendingBorrowRequests: borrowReqRes.pending_count || 0,
+          pendingRenewalRequests: renewalReqRes.pending_count || 0,
           pendingReturnRequests: returnReqRes.pending_count || 0,
           unpaidFines: 0,
         });
@@ -117,15 +137,16 @@ export default function AdminDashboard() {
   if (!user) return null;
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: '📊' },
-    { id: 'theses', label: 'Theses', icon: '🎓', badge: stats.theses },
-    { id: 'memberships', label: 'Memberships', icon: '🪪', badge: stats.pendingMemberships },
-    { id: 'borrow_requests', label: 'Borrow Requests', icon: '📥', badge: stats.pendingBorrowRequests },
-    { id: 'returns', label: 'Return Desk', icon: '🔄', badge: stats.pendingReturnRequests },
-    { id: 'users', label: 'Students', icon: '👥' },
-    { id: 'catalog', label: 'Catalog', icon: '📚' },
-    { id: 'inventory', label: 'Inventory', icon: '📦' },
-    { id: 'fines', label: 'Fines', icon: '💰' },
+    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
+    { id: 'theses', label: 'Theses', icon: GraduationCap, badge: stats.theses },
+    { id: 'memberships', label: 'Memberships', icon: CreditCard, badge: stats.pendingMemberships },
+    { id: 'borrow_requests', label: 'Borrow Requests', icon: Inbox, badge: stats.pendingBorrowRequests },
+    { id: 'renewal_requests', label: 'Renewal Requests', icon: Clock, badge: stats.pendingRenewalRequests },
+    { id: 'returns', label: 'Return Desk', icon: RotateCcw, badge: stats.pendingReturnRequests },
+    { id: 'users', label: 'User Management', icon: Users },
+    { id: 'catalog', label: 'Catalog', icon: BookOpen },
+    { id: 'inventory', label: 'Inventory', icon: Package },
+    { id: 'fines', label: 'Fines', icon: CircleDollarSign },
   ];
 
   const tabTitles = {
@@ -133,8 +154,9 @@ export default function AdminDashboard() {
     theses: 'Graduation Theses & Research Papers',
     memberships: 'Library Membership Requests',
     borrow_requests: 'Student Borrow Requests',
+    renewal_requests: 'Student Loan Renewal Requests',
     returns: 'Circulation & Return Desk',
-    users: 'Student Management',
+    users: 'User & Role Management',
     catalog: 'Book Catalog',
     inventory: 'Physical Inventory',
     fines: 'Fine Management',
@@ -145,8 +167,9 @@ export default function AdminDashboard() {
     theses: 'Upload and manage student graduation theses with full 10-page preview engine',
     memberships: 'Review, verify, and approve student membership applications to allow book borrowing',
     borrow_requests: 'Review and approve student book borrowing applications and assign physical copies',
+    renewal_requests: 'Review and approve student book loan extension requests and adjust due dates',
     returns: 'Verify student return requests, inspect physical copies, and process overdue fines',
-    users: 'View and manage student accounts and membership statuses',
+    users: 'View user accounts, upgrade students to Administrator, and manage access permissions',
     catalog: 'Manage the bibliographic catalog',
     inventory: 'Track every physical copy on the shelves',
     fines: 'View and manage overdue fines',
@@ -161,7 +184,9 @@ export default function AdminDashboard() {
       <aside className={`admin-sidebar ${sidebarOpen ? 'open' : ''}`}>
         <div className="admin-sidebar-header">
           <div className="admin-sidebar-brand">
-            <div className="admin-sidebar-logo">📖</div>
+            <div className="admin-sidebar-logo">
+              <BookOpen className="w-5 h-5 text-white" />
+            </div>
             <div className="admin-sidebar-brand-text">
               <h1>TTU Library</h1>
               <p>Admin Panel</p>
@@ -171,33 +196,42 @@ export default function AdminDashboard() {
 
         <nav className="admin-sidebar-nav">
           <div className="admin-nav-section-label">Main</div>
-          {tabs.slice(0, 2).map(t => (
-            <button key={t.id} className={`admin-nav-item ${activeTab === t.id ? 'active' : ''}`}
-              onClick={() => { setActiveTab(t.id); setSidebarOpen(false); }}>
-              <span className="admin-nav-icon">{t.icon}</span>
-              <span>{t.label}</span>
-              {t.badge > 0 && <span className="admin-nav-count-badge">{t.badge}</span>}
-            </button>
-          ))}
+          {tabs.slice(0, 2).map(t => {
+            const IconComponent = t.icon;
+            return (
+              <button key={t.id} className={`admin-nav-item ${activeTab === t.id ? 'active' : ''}`}
+                onClick={() => { setActiveTab(t.id); setSidebarOpen(false); }}>
+                <span className="admin-nav-icon"><IconComponent className="w-4 h-4" /></span>
+                <span>{t.label}</span>
+                {t.badge > 0 && <span className="admin-nav-count-badge">{t.badge}</span>}
+              </button>
+            );
+          })}
 
           <div className="admin-nav-section-label">Circulation & Requests</div>
-          {tabs.slice(2, 5).map(t => (
-            <button key={t.id} className={`admin-nav-item ${activeTab === t.id ? 'active' : ''}`}
-              onClick={() => { setActiveTab(t.id); setSidebarOpen(false); }}>
-              <span className="admin-nav-icon">{t.icon}</span>
-              <span>{t.label}</span>
-              {t.badge > 0 && <span className="admin-nav-count-badge">{t.badge}</span>}
-            </button>
-          ))}
+          {tabs.slice(2, 6).map(t => {
+            const IconComponent = t.icon;
+            return (
+              <button key={t.id} className={`admin-nav-item ${activeTab === t.id ? 'active' : ''}`}
+                onClick={() => { setActiveTab(t.id); setSidebarOpen(false); }}>
+                <span className="admin-nav-icon"><IconComponent className="w-4 h-4" /></span>
+                <span>{t.label}</span>
+                {t.badge > 0 && <span className="admin-nav-count-badge">{t.badge}</span>}
+              </button>
+            );
+          })}
 
           <div className="admin-nav-section-label">Management & Catalog</div>
-          {tabs.slice(5).map(t => (
-            <button key={t.id} className={`admin-nav-item ${activeTab === t.id ? 'active' : ''}`}
-              onClick={() => { setActiveTab(t.id); setSidebarOpen(false); }}>
-              <span className="admin-nav-icon">{t.icon}</span>
-              <span>{t.label}</span>
-            </button>
-          ))}
+          {tabs.slice(6).map(t => {
+            const IconComponent = t.icon;
+            return (
+              <button key={t.id} className={`admin-nav-item ${activeTab === t.id ? 'active' : ''}`}
+                onClick={() => { setActiveTab(t.id); setSidebarOpen(false); }}>
+                <span className="admin-nav-icon"><IconComponent className="w-4 h-4" /></span>
+                <span>{t.label}</span>
+              </button>
+            );
+          })}
         </nav>
 
         <div className="admin-sidebar-footer">
@@ -205,7 +239,7 @@ export default function AdminDashboard() {
             <div className="admin-user-avatar">{user.avatar_url ? <img src={user.avatar_url} alt="Admin" style={{ width: '100%', height: '100%', borderRadius: '50%' }} /> : (user.name ? user.name.slice(0, 2).toUpperCase() : 'AD')}</div>
             <div className="admin-user-info">
               <div className="admin-user-name">{user.name}</div>
-              <div className="admin-user-role">Librarian</div>
+              <div className="admin-user-role">Administrator</div>
             </div>
           </div>
         </div>
@@ -215,28 +249,38 @@ export default function AdminDashboard() {
       <main className="admin-main">
         <header className="admin-header">
           <div className="admin-header-left">
-            <button className="admin-hamburger" onClick={() => setSidebarOpen(true)}>☰</button>
+            <button className="admin-hamburger" onClick={() => setSidebarOpen(true)}>
+              <Menu className="w-5 h-5" />
+            </button>
             <h2>{tabTitles[activeTab]}</h2>
             <p>{tabDescriptions[activeTab]}</p>
           </div>
           <div className="admin-header-right">
             <button
-              className="admin-btn-primary"
-              style={{ background: 'linear-gradient(135deg, #059669, #10b981)', marginRight: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}
+              className="admin-btn-secondary"
+              onClick={() => navigate('/bookshelf')}
+              title="Open Student Bookshelf View"
+            >
+              <ExternalLink className="w-3.5 h-3.5" />
+              <span>View Bookshelf</span>
+            </button>
+            <button
+              className="admin-btn-secondary"
               onClick={() => setShowAddThesisModal(true)}
             >
-              <span>🎓</span>
+              <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
               <span>+ Add Thesis</span>
             </button>
             <button
               className="admin-btn-primary"
-              style={{ marginRight: '10px' }}
               onClick={() => setShowUnifiedModal(true)}
             >
-              + Add Book / Copy
+              <Plus className="w-3.5 h-3.5" />
+              <span>Add Book / Copy</span>
             </button>
             <button className="admin-logout-btn" onClick={handleLogout}>
-              ↩ Logout
+              <LogOut className="w-3.5 h-3.5" />
+              <span>Logout</span>
             </button>
           </div>
         </header>
@@ -246,8 +290,9 @@ export default function AdminDashboard() {
           {activeTab === 'theses' && <ThesesTab showToast={showToast} refreshTrigger={refreshTrigger} setShowAddThesisModal={setShowAddThesisModal} setPreviewThesisItem={setPreviewThesisItem} />}
           {activeTab === 'memberships' && <MembershipsTab showToast={showToast} refreshTrigger={refreshTrigger} />}
           {activeTab === 'borrow_requests' && <BorrowRequestsTab showToast={showToast} refreshTrigger={refreshTrigger} />}
+          {activeTab === 'renewal_requests' && <RenewalRequestsTab showToast={showToast} refreshTrigger={refreshTrigger} />}
           {activeTab === 'returns' && <ReturnsTab showToast={showToast} refreshTrigger={refreshTrigger} />}
-          {activeTab === 'users' && <UsersTab showToast={showToast} refreshTrigger={refreshTrigger} />}
+          {activeTab === 'users' && <UsersTab showToast={showToast} refreshTrigger={refreshTrigger} currentUser={user} />}
           {activeTab === 'catalog' && <CatalogTab showToast={showToast} refreshTrigger={refreshTrigger} setShowUnifiedModal={setShowUnifiedModal} />}
           {activeTab === 'inventory' && <InventoryTab showToast={showToast} refreshTrigger={refreshTrigger} setShowUnifiedModal={setShowUnifiedModal} />}
           {activeTab === 'fines' && <FinesTab showToast={showToast} refreshTrigger={refreshTrigger} />}
@@ -306,42 +351,42 @@ function OverviewTab({ stats, setActiveTab, setShowUnifiedModal, setShowAddThesi
     <>
       <div className="admin-stats-grid">
         <div className="admin-stat-card" onClick={() => setActiveTab('theses')} style={{ cursor: 'pointer' }}>
-          <div className="admin-stat-icon green" style={{ background: '#ecfdf5', color: '#059669' }}>🎓</div>
+          <div className="admin-stat-icon green"><GraduationCap className="w-5 h-5 text-emerald-600" /></div>
           <div className="admin-stat-text">
             <h3>{stats.theses || 0}</h3>
             <p>Graduation Theses</p>
           </div>
         </div>
         <div className="admin-stat-card" onClick={() => setActiveTab('memberships')} style={{ cursor: 'pointer' }}>
-          <div className="admin-stat-icon amber">🪪</div>
+          <div className="admin-stat-icon amber"><CreditCard className="w-5 h-5 text-amber-600" /></div>
           <div className="admin-stat-text">
-            <h3 style={{ color: stats.pendingMemberships > 0 ? '#fbbf24' : 'inherit' }}>{stats.pendingMemberships}</h3>
+            <h3 style={{ color: stats.pendingMemberships > 0 ? '#d97706' : 'inherit' }}>{stats.pendingMemberships}</h3>
             <p>Pending Memberships</p>
           </div>
         </div>
         <div className="admin-stat-card" onClick={() => setActiveTab('users')} style={{ cursor: 'pointer' }}>
-          <div className="admin-stat-icon purple">👥</div>
+          <div className="admin-stat-icon purple"><Users className="w-5 h-5 text-indigo-600" /></div>
           <div className="admin-stat-text">
             <h3>{stats.students}</h3>
-            <p>Total Students</p>
+            <p>Registered Users</p>
           </div>
         </div>
         <div className="admin-stat-card" onClick={() => setActiveTab('catalog')} style={{ cursor: 'pointer' }}>
-          <div className="admin-stat-icon blue">📚</div>
+          <div className="admin-stat-icon blue"><BookOpen className="w-5 h-5 text-sky-600" /></div>
           <div className="admin-stat-text">
             <h3>{stats.books}</h3>
             <p>Book Titles</p>
           </div>
         </div>
         <div className="admin-stat-card" onClick={() => setActiveTab('inventory')} style={{ cursor: 'pointer' }}>
-          <div className="admin-stat-icon green">📦</div>
+          <div className="admin-stat-icon green"><Package className="w-5 h-5 text-emerald-600" /></div>
           <div className="admin-stat-text">
             <h3>{stats.copies}</h3>
             <p>Physical Copies</p>
           </div>
         </div>
         <div className="admin-stat-card" onClick={() => setActiveTab('returns')} style={{ cursor: 'pointer' }}>
-          <div className="admin-stat-icon amber">🔄</div>
+          <div className="admin-stat-icon amber"><RotateCcw className="w-5 h-5 text-amber-600" /></div>
           <div className="admin-stat-text">
             <h3>{stats.activeBorrows}</h3>
             <p>Active Transactions</p>
@@ -351,24 +396,61 @@ function OverviewTab({ stats, setActiveTab, setShowUnifiedModal, setShowAddThesi
 
       <div className="admin-panel">
         <div className="admin-panel-header">
-          <h3>🚀 Quick Actions</h3>
+          <h3><Sparkles className="w-4 h-4 text-primary" /> Quick Actions</h3>
         </div>
-        <div style={{ padding: '20px 22px', display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div style={{ padding: '20px 22px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           {stats.pendingMemberships > 0 && (
-            <button className="admin-btn-primary" style={{ background: '#d97706' }} onClick={() => setActiveTab('memberships')}>
-              🪪 Review Memberships ({stats.pendingMemberships} pending)
+            <button className="admin-btn-primary" style={{ background: '#d97706', borderColor: '#b45309' }} onClick={() => setActiveTab('memberships')}>
+              <CreditCard className="w-3.5 h-3.5" />
+              <span>Review Memberships ({stats.pendingMemberships} pending)</span>
             </button>
           )}
-          <button className="admin-btn-primary" style={{ background: 'linear-gradient(135deg, #059669, #10b981)', display: 'flex', alignItems: 'center', gap: '6px' }} onClick={() => setShowAddThesisModal(true)}>
-            <span>🎓</span>
+          {stats.pendingBorrowRequests > 0 && (
+            <button className="admin-btn-primary" style={{ background: '#2563eb', borderColor: '#1d4ed8' }} onClick={() => setActiveTab('borrow_requests')}>
+              <Inbox className="w-3.5 h-3.5" />
+              <span>Review Borrow Requests ({stats.pendingBorrowRequests} pending)</span>
+            </button>
+          )}
+          {stats.pendingRenewalRequests > 0 && (
+            <button className="admin-btn-primary" style={{ background: '#6366f1', borderColor: '#4f46e5' }} onClick={() => setActiveTab('renewal_requests')}>
+              <Clock className="w-3.5 h-3.5" />
+              <span>Review Renewals ({stats.pendingRenewalRequests} pending)</span>
+            </button>
+          )}
+          {stats.pendingReturnRequests > 0 && (
+            <button className="admin-btn-primary" style={{ background: '#059669', borderColor: '#047857' }} onClick={() => setActiveTab('returns')}>
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Process Returns ({stats.pendingReturnRequests} pending)</span>
+            </button>
+          )}
+          <button className="admin-btn-secondary" onClick={() => setShowAddThesisModal(true)}>
+            <GraduationCap className="w-3.5 h-3.5 text-emerald-600" />
             <span>+ Add Thesis</span>
           </button>
-          <button className="admin-btn-primary" onClick={() => setShowUnifiedModal(true)}>+ Add Book / Copy</button>
-          <button className="admin-btn-secondary" onClick={() => setActiveTab('theses')}>🎓 View Theses</button>
-          <button className="admin-btn-secondary" onClick={() => setActiveTab('memberships')}>🪪 All Memberships</button>
-          <button className="admin-btn-secondary" onClick={() => setActiveTab('returns')}>🔄 Process Return</button>
-          <button className="admin-btn-secondary" onClick={() => setActiveTab('fines')}>💰 Manage Fines</button>
-          <button className="admin-btn-secondary" onClick={() => setActiveTab('users')}>👥 View Students</button>
+          <button className="admin-btn-primary" onClick={() => setShowUnifiedModal(true)}>
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Book / Copy</span>
+          </button>
+          <button className="admin-btn-secondary" onClick={() => setActiveTab('theses')}>
+            <GraduationCap className="w-3.5 h-3.5" />
+            <span>View Theses</span>
+          </button>
+          <button className="admin-btn-secondary" onClick={() => setActiveTab('memberships')}>
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>All Memberships</span>
+          </button>
+          <button className="admin-btn-secondary" onClick={() => setActiveTab('returns')}>
+            <RotateCcw className="w-3.5 h-3.5" />
+            <span>Process Return</span>
+          </button>
+          <button className="admin-btn-secondary" onClick={() => setActiveTab('fines')}>
+            <CircleDollarSign className="w-3.5 h-3.5" />
+            <span>Manage Fines</span>
+          </button>
+          <button className="admin-btn-secondary" onClick={() => setActiveTab('users')}>
+            <Users className="w-3.5 h-3.5" />
+            <span>User Management</span>
+          </button>
         </div>
       </div>
     </>
@@ -376,29 +458,37 @@ function OverviewTab({ stats, setActiveTab, setShowUnifiedModal, setShowAddThesi
 }
 
 // ═══════════════════════════════════════════════════════════════
-// USERS TAB
+// USERS & ROLE MANAGEMENT TAB
 // ═══════════════════════════════════════════════════════════════
-function UsersTab({ showToast }) {
+function UsersTab({ showToast, currentUser }) {
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [roleCounts, setRoleCounts] = useState({ total: 0, student_count: 0, admin_count: 0 });
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [selectedUser, setSelectedUser] = useState(null);
   const [userDetail, setUserDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
+  const [roleModalData, setRoleModalData] = useState(null); // { user, targetRole }
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await apiFetch(`${API}/users?search=${encodeURIComponent(search)}&page=${page}&limit=15`);
+      const data = await apiFetch(`${API}/users?search=${encodeURIComponent(search)}&role=${roleFilter}&page=${page}&limit=15`);
       setUsers(data.users || []);
       setTotalPages(data.total_pages || 1);
+      setRoleCounts({
+        total: data.total || 0,
+        student_count: data.student_count || 0,
+        admin_count: data.admin_count || 0,
+      });
     } catch (err) {
       showToast(err.message, 'error');
     }
     setLoading(false);
-  }, [search, page, showToast]);
+  }, [search, roleFilter, page, showToast]);
 
   useEffect(() => { fetchUsers(); }, [fetchUsers]);
 
@@ -414,26 +504,63 @@ function UsersTab({ showToast }) {
     setDetailLoading(false);
   };
 
+  const handleRoleSuccess = (updatedUser) => {
+    setUsers(prev => prev.map(u => u.id === updatedUser.id ? { ...u, ...updatedUser } : u));
+    if (userDetail && userDetail.user?.id === updatedUser.id) {
+      setUserDetail(prev => ({ ...prev, user: { ...prev.user, ...updatedUser } }));
+    }
+    fetchUsers();
+  };
+
   if (selectedUser && userDetail) {
     return (
       <UserDetailView
         data={userDetail}
-        onBack={() => { setSelectedUser(null); setUserDetail(null); }}
+        currentUser={currentUser}
+        onBack={() => { setSelectedUser(null); setUserDetail(null); fetchUsers(); }}
         loading={detailLoading}
         showToast={showToast}
+        onUserUpdated={handleRoleSuccess}
       />
     );
   }
 
   return (
     <div className="admin-panel">
-      <div className="admin-panel-header">
-        <h3>👥 Students ({users.length})</h3>
+      <div className="admin-panel-header" style={{ flexWrap: 'wrap', gap: 14 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0 }}>👥 User & Role Management</h3>
+          {/* Role Filter Pills */}
+          <div className="admin-filter-pills">
+            <button
+              className={`admin-filter-pill ${roleFilter === 'all' ? 'active' : ''}`}
+              onClick={() => { setRoleFilter('all'); setPage(1); }}
+            >
+              <span>All Users</span>
+              <span className="admin-filter-pill-count">{roleCounts.total}</span>
+            </button>
+            <button
+              className={`admin-filter-pill ${roleFilter === 'student' ? 'active' : ''}`}
+              onClick={() => { setRoleFilter('student'); setPage(1); }}
+            >
+              <span>🎓 Students</span>
+              <span className="admin-filter-pill-count">{roleCounts.student_count}</span>
+            </button>
+            <button
+              className={`admin-filter-pill ${roleFilter === 'librarian' ? 'active' : ''}`}
+              onClick={() => { setRoleFilter('librarian'); setPage(1); }}
+            >
+              <span>👑 Admins</span>
+              <span className="admin-filter-pill-count">{roleCounts.admin_count}</span>
+            </button>
+          </div>
+        </div>
+
         <div className="admin-panel-actions">
           <div className="admin-search-input">
             <span>🔍</span>
             <input
-              placeholder="Search by name, ID, or email…"
+              placeholder="Search by name, ID, email…"
               value={search}
               onChange={e => { setSearch(e.target.value); setPage(1); }}
             />
@@ -442,53 +569,95 @@ function UsersTab({ showToast }) {
       </div>
 
       {loading ? (
-        <div className="admin-loading"><div className="admin-spinner" /><p>Loading students…</p></div>
+        <div className="admin-loading"><div className="admin-spinner" /><p>Loading users…</p></div>
       ) : users.length === 0 ? (
-        <div className="admin-empty"><div className="admin-empty-icon">👥</div><p>No students found</p></div>
+        <div className="admin-empty"><div className="admin-empty-icon">👥</div><p>No users found</p></div>
       ) : (
         <>
           <div className="admin-table-wrapper">
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Student ID</th>
+                  <th>User</th>
+                  <th>Student / Roll ID</th>
                   <th>Email</th>
+                  <th>Role</th>
                   <th>Membership</th>
                   <th>Active Borrows</th>
                   <th>Joined</th>
+                  <th style={{ textAlign: 'right' }}>Role Action</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {users.map(u => (
-                  <tr key={u.id} className="clickable" onClick={() => viewUser(u.id)}>
-                    <td style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                      <div className="admin-user-avatar" style={{ width: 28, height: 28, fontSize: 10, borderRadius: 6 }}>
-                        {u.avatar_url && u.avatar_url.length > 2 ? (
-                          <img src={u.avatar_url} alt="" style={{ width: '100%', height: '100%', borderRadius: 6, objectFit: 'cover' }} />
+                {users.map(u => {
+                  const isCurrentSessionUser = currentUser && currentUser.id === u.id;
+                  const isLibrarian = u.role === 'librarian';
+
+                  return (
+                    <tr key={u.id} className="clickable" onClick={() => viewUser(u.id)}>
+                      <td style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div className="admin-user-avatar" style={{ width: 30, height: 30, fontSize: 11, borderRadius: 8 }}>
+                          {u.avatar_url && u.avatar_url.length > 2 ? (
+                            <img src={u.avatar_url} alt="" style={{ width: '100%', height: '100%', borderRadius: 8, objectFit: 'cover' }} />
+                          ) : (
+                            u.avatar_url || '??'
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>{u.name}</div>
+                          {isCurrentSessionUser && (
+                            <span className="admin-badge role-you" style={{ marginTop: 2 }}>You</span>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{u.student_id || u.roll_number || '—'}</td>
+                      <td>{u.email}</td>
+                      <td>
+                        <span className={`admin-badge ${isLibrarian ? 'role-librarian' : 'role-student'}`}>
+                          {isLibrarian ? '👑 Administrator' : '🎓 Student'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`admin-badge ${u.membership_status || 'none'}`}>
+                          {u.membership_status === 'approved' ? '✓ Approved' : u.membership_status === 'pending' ? '⏳ Pending' : u.membership_status === 'rejected' ? '✕ Rejected' : 'Not Applied'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`admin-badge ${u.active_borrow_count > 0 ? 'borrowed' : 'no_fine'}`}>
+                          {u.active_borrow_count}
+                        </span>
+                      </td>
+                      <td>{u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</td>
+                      <td style={{ textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+                        {isCurrentSessionUser ? (
+                          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', fontStyle: 'italic' }}>Active Admin</span>
+                        ) : isLibrarian ? (
+                          <button
+                            className="admin-btn-demote"
+                            onClick={() => setRoleModalData({ user: u, targetRole: 'student' })}
+                            title="Revoke administrator privileges"
+                          >
+                            <span>✕ Revoke Admin</span>
+                          </button>
                         ) : (
-                          u.avatar_url || '??'
+                          <button
+                            className="admin-btn-upgrade"
+                            onClick={() => setRoleModalData({ user: u, targetRole: 'librarian' })}
+                            title="Upgrade this user to Administrator"
+                          >
+                            <span>👑 Make Admin</span>
+                          </button>
                         )}
-                      </div>
-                      {u.name}
-                    </td>
-                    <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{u.student_id || u.roll_number || '—'}</td>
-                    <td>{u.email}</td>
-                    <td>
-                      <span className={`admin-badge ${u.membership_status || 'none'}`}>
-                        {u.membership_status === 'approved' ? '✓ Approved' : u.membership_status === 'pending' ? '⏳ Pending' : u.membership_status === 'rejected' ? '✕ Rejected' : 'Not Applied'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`admin-badge ${u.active_borrow_count > 0 ? 'borrowed' : 'no_fine'}`}>
-                        {u.active_borrow_count}
-                      </span>
-                    </td>
-                    <td>{u.created_at ? new Date(u.created_at).toLocaleDateString() : '—'}</td>
-                    <td><button className="admin-btn-secondary" style={{ padding: '4px 10px', fontSize: 11 }}>View →</button></td>
-                  </tr>
-                ))}
+                      </td>
+                      <td>
+                        <button className="admin-btn-secondary" style={{ padding: '4px 10px', fontSize: 11 }}>
+                          View →
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -503,17 +672,149 @@ function UsersTab({ showToast }) {
           )}
         </>
       )}
+
+      {/* Role Upgrade / Demote Modal */}
+      {roleModalData && (
+        <AdminRoleModal
+          user={roleModalData.user}
+          targetRole={roleModalData.targetRole}
+          onClose={() => setRoleModalData(null)}
+          onSuccess={handleRoleSuccess}
+          showToast={showToast}
+        />
+      )}
+    </div>
+  );
+}
+
+// ── Admin Role Upgrade / Demote Confirmation Modal ───────────
+function AdminRoleModal({ user, targetRole, onClose, onSuccess, showToast }) {
+  const [processing, setProcessing] = useState(false);
+  const isUpgrading = targetRole === 'librarian';
+
+  const handleConfirm = async () => {
+    setProcessing(true);
+    try {
+      const res = await apiFetch(`${API}/users/${user.id}/role`, {
+        method: 'PATCH',
+        body: JSON.stringify({ role: targetRole }),
+      });
+      showToast(res.message || 'User role updated successfully!');
+      onSuccess(res.user || { ...user, role: targetRole });
+      onClose();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    setProcessing(false);
+  };
+
+  return (
+    <div className="admin-modal-overlay" onClick={onClose}>
+      <div className="admin-modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
+        <div className="admin-modal-header">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span style={{ fontSize: 22 }}>{isUpgrading ? '👑' : '⚠️'}</span>
+            <h3 style={{ margin: 0 }}>
+              {isUpgrading ? 'Promote to Administrator' : 'Revoke Administrator Privileges'}
+            </h3>
+          </div>
+          <button className="admin-modal-close" onClick={onClose}>×</button>
+        </div>
+
+        <div className="admin-modal-body">
+          {/* Target User Info */}
+          <div className="admin-role-modal-card">
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div className="admin-user-avatar" style={{ width: 44, height: 44, fontSize: 16, borderRadius: 10 }}>
+                {user.avatar_url && user.avatar_url.length > 2 ? (
+                  <img src={user.avatar_url} alt="" style={{ width: '100%', height: '100%', borderRadius: 10, objectFit: 'cover' }} />
+                ) : (
+                  user.avatar_url || '??'
+                )}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontWeight: 600, fontSize: 15, color: '#f1f1f4' }}>{user.name}</div>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{user.email}</div>
+                <div style={{ display: 'flex', gap: 8, marginTop: 6, alignItems: 'center' }}>
+                  <span className={`admin-badge ${user.role === 'librarian' ? 'role-librarian' : 'role-student'}`}>
+                    {user.role === 'librarian' ? '👑 Administrator' : '🎓 Student'}
+                  </span>
+                  {(user.student_id || user.roll_number) && (
+                    <span style={{ fontFamily: 'monospace', fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
+                      ID: {user.student_id || user.roll_number}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {isUpgrading ? (
+            <div>
+              <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13.5, margin: '0 0 10px', lineHeight: 1.5 }}>
+                Promoting <strong>{user.name}</strong> will grant them full administrative access to the TTU Library Management System:
+              </p>
+              <ul className="admin-privilege-list">
+                <li className="admin-privilege-item">
+                  <span className="admin-privilege-icon">📚</span>
+                  <span><strong>Catalog & Inventory:</strong> Add, edit, and manage physical book copies and catalog metadata.</span>
+                </li>
+                <li className="admin-privilege-item">
+                  <span className="admin-privilege-icon">🎓</span>
+                  <span><strong>Theses Management:</strong> Upload, verify, and publish student graduation theses with full previews.</span>
+                </li>
+                <li className="admin-privilege-item">
+                  <span className="admin-privilege-icon">🪪</span>
+                  <span><strong>Circulation & Desk:</strong> Verify student memberships, approve borrow requests, process returns, and manage fines.</span>
+                </li>
+                <li className="admin-privilege-item">
+                  <span className="admin-privilege-icon">👥</span>
+                  <span><strong>Role Delegation:</strong> Manage user accounts and upgrade other members to administrators.</span>
+                </li>
+              </ul>
+              <div style={{ marginTop: 14, padding: 10, borderRadius: 8, background: 'rgba(99, 102, 241, 0.1)', border: '1px solid rgba(99, 102, 241, 0.25)', fontSize: 12, color: '#c4b5fd' }}>
+                💡 An in-app notification will be delivered automatically to this user on their next session.
+              </div>
+            </div>
+          ) : (
+            <div>
+              <p style={{ color: '#fca5a5', fontSize: 13.5, margin: '0 0 10px', lineHeight: 1.5 }}>
+                Are you sure you want to revoke administrator access for <strong>{user.name}</strong>?
+              </p>
+              <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12.5, lineHeight: 1.5 }}>
+                Their role will be changed back to <strong>Student</strong>. They will no longer be able to access the Admin Panel or administrative tools.
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="admin-modal-footer">
+          <button className="admin-btn-secondary" onClick={onClose} disabled={processing}>Cancel</button>
+          <button
+            className={isUpgrading ? "admin-btn-primary" : "admin-btn-secondary"}
+            style={isUpgrading ? { background: 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)', color: '#fff', border: 'none' } : { background: '#ef4444', color: '#fff', border: 'none' }}
+            onClick={handleConfirm}
+            disabled={processing}
+          >
+            {processing ? (isUpgrading ? 'Promoting…' : 'Revoking…') : (isUpgrading ? 'Confirm & Promote to Admin 👑' : 'Confirm & Revoke Access')}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
 // ── User Detail View ─────────────────────────────────────────
-function UserDetailView({ data, onBack, showToast }) {
+function UserDetailView({ data, onBack, showToast, currentUser, onUserUpdated }) {
   const { user, active_borrows = [], unpaid_fines = [], total_unpaid_fine_amount = 0 } = data;
-  const [currentUser, setCurrentUser] = useState(user);
+  const [currUser, setCurrUser] = useState(user);
   const [rejectModalOpen, setRejectModalOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [roleModalData, setRoleModalData] = useState(null);
   const [processing, setProcessing] = useState(false);
+
+  const isCurrentSessionUser = currentUser && currentUser.id === currUser.id;
+  const isLibrarian = currUser.role === 'librarian';
 
   const handleMarkPaid = async (txId) => {
     try {
@@ -527,9 +828,11 @@ function UserDetailView({ data, onBack, showToast }) {
   const handleApproveMembership = async () => {
     setProcessing(true);
     try {
-      const res = await apiFetch(`${API}/memberships/${currentUser.id}/approve`, { method: 'PATCH' });
+      const res = await apiFetch(`${API}/memberships/${currUser.id}/approve`, { method: 'PATCH' });
       showToast(res.message || 'Membership approved!');
-      setCurrentUser(prev => ({ ...prev, membership_status: 'approved', membership_approved_at: new Date().toISOString(), membership_rejected_reason: null }));
+      const updated = { ...currUser, membership_status: 'approved', membership_approved_at: new Date().toISOString(), membership_rejected_reason: null };
+      setCurrUser(updated);
+      if (onUserUpdated) onUserUpdated(updated);
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -539,12 +842,14 @@ function UserDetailView({ data, onBack, showToast }) {
   const handleRejectMembership = async () => {
     setProcessing(true);
     try {
-      const res = await apiFetch(`${API}/memberships/${currentUser.id}/reject`, {
+      const res = await apiFetch(`${API}/memberships/${currUser.id}/reject`, {
         method: 'PATCH',
         body: JSON.stringify({ reason: rejectReason || 'Application details could not be verified.' })
       });
       showToast(res.message || 'Membership rejected.');
-      setCurrentUser(prev => ({ ...prev, membership_status: 'rejected', membership_rejected_reason: rejectReason }));
+      const updated = { ...currUser, membership_status: 'rejected', membership_rejected_reason: rejectReason };
+      setCurrUser(updated);
+      if (onUserUpdated) onUserUpdated(updated);
       setRejectModalOpen(false);
       setRejectReason('');
     } catch (err) {
@@ -553,18 +858,65 @@ function UserDetailView({ data, onBack, showToast }) {
     setProcessing(false);
   };
 
+  const handleRoleChangeSuccess = (updatedUser) => {
+    setCurrUser(prev => ({ ...prev, ...updatedUser }));
+    if (onUserUpdated) onUserUpdated(updatedUser);
+  };
+
   return (
     <>
-      <button className="admin-back-btn" onClick={onBack}>← Back to Students</button>
+      <button className="admin-back-btn" onClick={onBack}>← Back to User Management</button>
 
       <div className="admin-user-detail">
         {/* Profile */}
         <div className="admin-user-detail-card">
-          <h4>👤 Student Profile</h4>
-          <div className="admin-detail-field"><span className="admin-detail-label">Name</span><span className="admin-detail-value">{currentUser.name}</span></div>
-          <div className="admin-detail-field"><span className="admin-detail-label">Roll / Student ID</span><span className="admin-detail-value" style={{ fontFamily: 'monospace' }}>{currentUser.student_id || currentUser.roll_number || '—'}</span></div>
-          <div className="admin-detail-field"><span className="admin-detail-label">Email</span><span className="admin-detail-value">{currentUser.email}</span></div>
-          <div className="admin-detail-field"><span className="admin-detail-label">Joined</span><span className="admin-detail-value">{currentUser.created_at ? new Date(currentUser.created_at).toLocaleDateString() : '—'}</span></div>
+          <h4>👤 User Profile</h4>
+          <div className="admin-detail-field"><span className="admin-detail-label">Name</span><span className="admin-detail-value">{currUser.name}</span></div>
+          <div className="admin-detail-field"><span className="admin-detail-label">Roll / Student ID</span><span className="admin-detail-value" style={{ fontFamily: 'monospace' }}>{currUser.student_id || currUser.roll_number || '—'}</span></div>
+          <div className="admin-detail-field"><span className="admin-detail-label">Email</span><span className="admin-detail-value">{currUser.email}</span></div>
+          <div className="admin-detail-field"><span className="admin-detail-label">Joined</span><span className="admin-detail-value">{currUser.created_at ? new Date(currUser.created_at).toLocaleDateString() : '—'}</span></div>
+        </div>
+
+        {/* Role & Permissions Card */}
+        <div className="admin-user-detail-card">
+          <h4>👑 Role & Administrative Privileges</h4>
+          <div className="admin-detail-field">
+            <span className="admin-detail-label">Current Role</span>
+            <span className="admin-detail-value">
+              <span className={`admin-badge ${isLibrarian ? 'role-librarian' : 'role-student'}`}>
+                {isLibrarian ? '👑 Administrator / Librarian' : '🎓 Student'}
+              </span>
+            </span>
+          </div>
+          <div className="admin-detail-field">
+            <span className="admin-detail-label">Privilege Level</span>
+            <span className="admin-detail-value">
+              {isLibrarian ? 'Full Admin Access (Catalog, Theses, Circulation & Roles)' : 'Standard Student Access (Borrowing & Digital Library)'}
+            </span>
+          </div>
+          <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            {isCurrentSessionUser ? (
+              <span className="admin-badge role-you" style={{ padding: '6px 12px', fontSize: 12 }}>
+                🛡️ Current Active Session (You)
+              </span>
+            ) : isLibrarian ? (
+              <button
+                className="admin-btn-demote"
+                style={{ padding: '7px 14px', fontSize: 12 }}
+                onClick={() => setRoleModalData({ user: currUser, targetRole: 'student' })}
+              >
+                ✕ Revoke Administrator Access
+              </button>
+            ) : (
+              <button
+                className="admin-btn-upgrade"
+                style={{ padding: '7px 14px', fontSize: 12 }}
+                onClick={() => setRoleModalData({ user: currUser, targetRole: 'librarian' })}
+              >
+                👑 Upgrade to Administrator
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Membership Info */}
@@ -573,22 +925,22 @@ function UserDetailView({ data, onBack, showToast }) {
           <div className="admin-detail-field">
             <span className="admin-detail-label">Status</span>
             <span className="admin-detail-value">
-              <span className={`admin-badge ${currentUser.membership_status || 'none'}`}>
-                {currentUser.membership_status === 'approved' ? '✓ Approved' : currentUser.membership_status === 'pending' ? '⏳ Pending Review' : currentUser.membership_status === 'rejected' ? '✕ Rejected' : 'Not Applied'}
+              <span className={`admin-badge ${currUser.membership_status || 'none'}`}>
+                {currUser.membership_status === 'approved' ? '✓ Approved' : currUser.membership_status === 'pending' ? '⏳ Pending Review' : currUser.membership_status === 'rejected' ? '✕ Rejected' : 'Not Applied'}
               </span>
             </span>
           </div>
-          <div className="admin-detail-field"><span className="admin-detail-label">Major & Year</span><span className="admin-detail-value">{currentUser.major || '—'} {currentUser.year ? `(Year ${currentUser.year})` : ''}</span></div>
-          <div className="admin-detail-field"><span className="admin-detail-label">Phone</span><span className="admin-detail-value">{currentUser.phone || '—'}</span></div>
-          <div className="admin-detail-field"><span className="admin-detail-label">NRC / ID</span><span className="admin-detail-value">{currentUser.nrc || '—'}</span></div>
-          {currentUser.membership_rejected_reason && (
-            <div className="admin-detail-field"><span className="admin-detail-label">Reason</span><span className="admin-detail-value danger">{currentUser.membership_rejected_reason}</span></div>
+          <div className="admin-detail-field"><span className="admin-detail-label">Major & Year</span><span className="admin-detail-value">{currUser.major || '—'} {currUser.year ? `(Year ${currUser.year})` : ''}</span></div>
+          <div className="admin-detail-field"><span className="admin-detail-label">Phone</span><span className="admin-detail-value">{currUser.phone || '—'}</span></div>
+          <div className="admin-detail-field"><span className="admin-detail-label">NRC / ID</span><span className="admin-detail-value">{currUser.nrc || '—'}</span></div>
+          {currUser.membership_rejected_reason && (
+            <div className="admin-detail-field"><span className="admin-detail-label">Reason</span><span className="admin-detail-value danger">{currUser.membership_rejected_reason}</span></div>
           )}
           <div style={{ marginTop: 14, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            {currentUser.membership_status !== 'approved' && (
+            {currUser.membership_status !== 'approved' && (
               <button className="admin-btn-success" onClick={handleApproveMembership} disabled={processing}>Approve Member ✓</button>
             )}
-            {currentUser.membership_status !== 'rejected' && (
+            {currUser.membership_status !== 'rejected' && (
               <button className="admin-btn-secondary" style={{ color: '#f87171' }} onClick={() => setRejectModalOpen(true)} disabled={processing}>Reject ✕</button>
             )}
           </div>
@@ -684,6 +1036,17 @@ function UserDetailView({ data, onBack, showToast }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Role Upgrade / Demote Modal from Detail View */}
+      {roleModalData && (
+        <AdminRoleModal
+          user={roleModalData.user}
+          targetRole={roleModalData.targetRole}
+          onClose={() => setRoleModalData(null)}
+          onSuccess={handleRoleChangeSuccess}
+          showToast={showToast}
+        />
       )}
     </>
   );
@@ -1767,6 +2130,375 @@ function BorrowRequestsTab({ showToast, refreshTrigger }) {
               <button className="admin-btn-secondary" onClick={() => setRejectingTx(null)}>Cancel</button>
               <button className="admin-btn-danger" onClick={handleConfirmReject} disabled={actionLoading}>
                 {actionLoading ? 'Rejecting…' : 'Confirm Rejection'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════
+// RENEWAL REQUESTS TAB (Review & Approve student loan extensions)
+// ═══════════════════════════════════════════════════════════════
+function RenewalRequestsTab({ showToast, refreshTrigger }) {
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [statusFilter, setStatusFilter] = useState('renewal_requested');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  // Approval & Rejection Modal State
+  const [approvingTx, setApprovingTx] = useState(null);
+  const [extensionDays, setExtensionDays] = useState(7);
+  const [librarianNotes, setLibrarianNotes] = useState('');
+
+  const [rejectingTx, setRejectingTx] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const fetchRenewalRequests = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await apiFetch(
+        `${API}/requests/renewal?status=${statusFilter}&search=${encodeURIComponent(search)}&page=${page}&limit=15`
+      );
+      setRequests(data.requests || []);
+      setTotalCount(data.total || 0);
+      setTotalPages(data.total_pages || 1);
+      setPendingCount(data.pending_count || 0);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    setLoading(false);
+  }, [statusFilter, search, page, showToast]);
+
+  useEffect(() => {
+    fetchRenewalRequests();
+  }, [fetchRenewalRequests, refreshTrigger]);
+
+  const handleOpenApproveModal = (req) => {
+    setApprovingTx(req);
+    setExtensionDays(req.renewal_duration_days || 7);
+    setLibrarianNotes('');
+  };
+
+  const handleConfirmApprove = async () => {
+    if (!approvingTx) return;
+    setActionLoading(true);
+    try {
+      const res = await apiFetch(`${API}/requests/renewal/${approvingTx.id}/approve`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          extensionDays: parseInt(extensionDays, 10) || 7,
+          librarianNotes: librarianNotes.trim()
+        })
+      });
+      showToast(res.message || 'Renewal request approved!');
+      setApprovingTx(null);
+      fetchRenewalRequests();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    setActionLoading(false);
+  };
+
+  const handleOpenRejectModal = (req) => {
+    setRejectingTx(req);
+    setRejectReason('');
+  };
+
+  const handleConfirmReject = async () => {
+    if (!rejectingTx) return;
+    setActionLoading(true);
+    try {
+      const res = await apiFetch(`${API}/requests/renewal/${rejectingTx.id}/reject`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          reason: rejectReason.trim() || 'Physical copy is reserved by another student or maximum renewal limit reached.'
+        })
+      });
+      showToast(res.message || 'Renewal request rejected.');
+      setRejectingTx(null);
+      fetchRenewalRequests();
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+    setActionLoading(false);
+  };
+
+  const calculateProjectedDueDate = (tx, days) => {
+    if (!tx) return '—';
+    const currentDue = tx.due_date ? new Date(tx.due_date) : new Date();
+    const now = new Date();
+    const base = currentDue > now ? currentDue : now;
+    const proj = new Date(base);
+    proj.setDate(proj.getDate() + (parseInt(days, 10) || 7));
+    return proj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  return (
+    <div className="admin-panel">
+      <div className="admin-panel-header" style={{ flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+          <h3>⏳ Student Loan Renewal Requests</h3>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              className={`admin-btn-secondary ${statusFilter === 'renewal_requested' ? 'active' : ''}`}
+              style={{
+                fontSize: 12,
+                padding: '4px 12px',
+                background: statusFilter === 'renewal_requested' ? 'rgba(99, 102, 241, 0.2)' : undefined,
+                color: statusFilter === 'renewal_requested' ? '#a5b4fc' : undefined,
+                borderColor: statusFilter === 'renewal_requested' ? '#6366f1' : undefined,
+              }}
+              onClick={() => { setStatusFilter('renewal_requested'); setPage(1); }}
+            >
+              Pending ({pendingCount})
+            </button>
+            <button
+              className={`admin-btn-secondary ${statusFilter === 'borrowed' ? 'active' : ''}`}
+              style={{ fontSize: 12, padding: '4px 12px' }}
+              onClick={() => { setStatusFilter('borrowed'); setPage(1); }}
+            >
+              Active Loans
+            </button>
+            <button
+              className={`admin-btn-secondary ${statusFilter === 'all' ? 'active' : ''}`}
+              style={{ fontSize: 12, padding: '4px 12px' }}
+              onClick={() => { setStatusFilter('all'); setPage(1); }}
+            >
+              All Records
+            </button>
+          </div>
+        </div>
+
+        <div className="admin-panel-actions">
+          <div className="admin-search-input">
+            <span>🔍</span>
+            <input
+              placeholder="Search student, book, accession…"
+              value={search}
+              onChange={e => { setSearch(e.target.value); setPage(1); }}
+            />
+          </div>
+        </div>
+      </div>
+
+      {loading ? (
+        <div className="admin-loading">
+          <div className="admin-spinner" />
+          <p>Loading renewal requests…</p>
+        </div>
+      ) : requests.length === 0 ? (
+        <div className="admin-empty">
+          <div className="admin-empty-icon">⏳</div>
+          <p>No renewal requests found in this category</p>
+        </div>
+      ) : (
+        <>
+          <div className="admin-table-wrapper">
+            <table className="admin-table">
+              <thead>
+                <tr>
+                  <th>Student Borrower</th>
+                  <th>Book Title</th>
+                  <th>Copy Accession</th>
+                  <th>Current Due Date</th>
+                  <th>Extension Request</th>
+                  <th>Renewal Count</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {requests.map(req => (
+                  <tr key={req.id}>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#f3f4f6' }}>{req.student?.name || '—'}</div>
+                      <div style={{ fontSize: 11.5, color: '#9ca3af', marginTop: 2 }}>
+                        {req.student?.roll_number || req.student?.student_id || 'No Roll'} • {req.student?.major || 'Major —'} {req.student?.year ? `(Yr ${req.student.year})` : ''}
+                      </div>
+                      <div style={{ fontSize: 11, color: '#6b7280' }}>{req.student?.email}</div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, maxWidth: 220 }}>{req.book?.title || '—'}</div>
+                      <div style={{ fontSize: 12, color: '#9ca3af' }}>{req.book?.author}</div>
+                    </td>
+                    <td>
+                      <span style={{ fontFamily: 'monospace', fontSize: 12, fontWeight: 600, color: '#60a5fa' }}>
+                        {req.accession_no}
+                      </span>
+                    </td>
+                    <td>
+                      <div>
+                        {req.due_date ? new Date(req.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}
+                      </div>
+                      <div style={{ fontSize: 11, marginTop: 2 }}>
+                        {req.is_overdue ? (
+                          <span style={{ color: '#f87171', fontWeight: 600 }}>⚠️ Overdue</span>
+                        ) : req.days_remaining !== null ? (
+                          <span style={{ color: '#34d399' }}>{req.days_remaining}d remaining</span>
+                        ) : null}
+                      </div>
+                    </td>
+                    <td>
+                      <div style={{ fontWeight: 600, color: '#a5b4fc' }}>
+                        +{req.renewal_duration_days || 7} Days
+                      </div>
+                      <div style={{ fontSize: 12, color: '#d1d5db', marginTop: 2, maxWidth: 180 }}>
+                        {req.renewal_request_notes ? `"${req.renewal_request_notes}"` : <span style={{ color: '#6b7280' }}>No note provided</span>}
+                      </div>
+                      {req.librarian_notes && (
+                        <div style={{ fontSize: 11, color: req.status === 'rejected' ? '#f87171' : '#34d399', marginTop: 3 }}>
+                          Note: {req.librarian_notes}
+                        </div>
+                      )}
+                    </td>
+                    <td>
+                      <span style={{ 
+                        fontSize: 11.5, 
+                        fontWeight: 600, 
+                        padding: '2px 8px', 
+                        borderRadius: 6, 
+                        background: (req.renewal_count || 0) >= 2 ? 'rgba(239, 68, 68, 0.2)' : 'rgba(99, 102, 241, 0.15)',
+                        color: (req.renewal_count || 0) >= 2 ? '#fca5a5' : '#a5b4fc' 
+                      }}>
+                        {req.renewal_count || 0} / 3 Renewals
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`admin-badge ${req.status}`}>
+                        {req.status === 'renewal_requested' ? 'Pending Review' : req.status === 'borrowed' ? 'Active / Extended' : req.status}
+                      </span>
+                    </td>
+                    <td>
+                      {req.status === 'renewal_requested' ? (
+                        <div style={{ display: 'flex', gap: 6 }}>
+                          <button
+                            className="admin-btn-success"
+                            style={{ padding: '5px 10px', fontSize: 12, background: '#4f46e5' }}
+                            onClick={() => handleOpenApproveModal(req)}
+                          >
+                            Approve ✓
+                          </button>
+                          <button
+                            className="admin-btn-danger"
+                            style={{ padding: '5px 10px', fontSize: 12 }}
+                            onClick={() => handleOpenRejectModal(req)}
+                          >
+                            Reject ✕
+                          </button>
+                        </div>
+                      ) : req.status === 'borrowed' ? (
+                        <span style={{ fontSize: 12, color: '#34d399', fontWeight: 600 }}>Active Loan</span>
+                      ) : (
+                        <span style={{ fontSize: 12, color: '#9ca3af' }}>Closed</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {totalPages > 1 && (
+            <div className="admin-pagination">
+              <button className="admin-page-btn" disabled={page <= 1} onClick={() => setPage(p => p - 1)}>‹</button>
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map(p => (
+                <button key={p} className={`admin-page-btn ${page === p ? 'active' : ''}`} onClick={() => setPage(p)}>{p}</button>
+              ))}
+              <button className="admin-page-btn" disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}>›</button>
+            </div>
+          )}
+        </>
+      )}
+
+      {/* Approve Modal */}
+      {approvingTx && (
+        <div className="admin-modal-overlay" onClick={() => setApprovingTx(null)}>
+          <div className="admin-modal" style={{ maxWidth: 440 }} onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>Approve Loan Renewal</h3>
+              <button className="admin-modal-close" onClick={() => setApprovingTx(null)}>×</button>
+            </div>
+            <div className="admin-modal-body">
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13.5, marginBottom: 14 }}>
+                Approve loan extension of <strong>"{approvingTx.book?.title}"</strong> for <strong>{approvingTx.student?.name}</strong>.
+              </p>
+
+              <div style={{ background: 'rgba(255,255,255,0.05)', padding: '12px 14px', borderRadius: 8, marginBottom: 14 }}>
+                <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)' }}>Projected New Due Date:</div>
+                <div style={{ fontSize: 16, fontWeight: 700, color: '#34d399', marginTop: 2 }}>
+                  📅 {calculateProjectedDueDate(approvingTx, extensionDays)}
+                </div>
+              </div>
+
+              <div className="admin-form-group">
+                <label>Extension Period</label>
+                <select
+                  className="admin-form-input"
+                  value={extensionDays}
+                  onChange={e => setExtensionDays(e.target.value)}
+                >
+                  <option value={7}>+7 Days (1 Extra Week)</option>
+                  <option value={14}>+14 Days (2 Extra Weeks)</option>
+                  <option value={21}>+21 Days (3 Extra Weeks)</option>
+                  <option value={30}>+30 Days (Full Month Extension)</option>
+                </select>
+              </div>
+
+              <div className="admin-form-group">
+                <label>Librarian Note to Student (Optional)</label>
+                <input
+                  className="admin-form-input"
+                  value={librarianNotes}
+                  onChange={e => setLibrarianNotes(e.target.value)}
+                  placeholder="e.g. Loan renewed. Please return on or before the new due date."
+                />
+              </div>
+            </div>
+            <div className="admin-modal-footer">
+              <button className="admin-btn-secondary" onClick={() => setApprovingTx(null)}>Cancel</button>
+              <button className="admin-btn-success" style={{ background: '#4f46e5' }} onClick={handleConfirmApprove} disabled={actionLoading}>
+                {actionLoading ? 'Approving…' : 'Confirm Renewal & Extend Due Date ✓'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Modal */}
+      {rejectingTx && (
+        <div className="admin-modal-overlay" onClick={() => setRejectingTx(null)}>
+          <div className="admin-modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+            <div className="admin-modal-header">
+              <h3>Reject Renewal Request</h3>
+              <button className="admin-modal-close" onClick={() => setRejectingTx(null)}>×</button>
+            </div>
+            <div className="admin-modal-body">
+              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: 13.5, marginBottom: 14 }}>
+                Reject renewal request for <strong>"{rejectingTx.book?.title}"</strong> by <strong>{rejectingTx.student?.name}</strong>.
+              </p>
+              <div className="admin-form-group">
+                <label>Rejection Reason</label>
+                <textarea
+                  className="admin-form-input"
+                  rows={3}
+                  placeholder="e.g. Physical copy is reserved by another borrower / Maximum renewals reached"
+                  value={rejectReason}
+                  onChange={e => setRejectReason(e.target.value)}
+                />
+              </div>
+            </div>
+            <div className="admin-modal-footer">
+              <button className="admin-btn-secondary" onClick={() => setRejectingTx(null)}>Cancel</button>
+              <button className="admin-btn-danger" onClick={handleConfirmReject} disabled={actionLoading}>
+                {actionLoading ? 'Rejecting…' : 'Reject Renewal Request'}
               </button>
             </div>
           </div>

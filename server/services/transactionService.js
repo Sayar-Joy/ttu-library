@@ -560,6 +560,212 @@ export async function returnBook(transactionId) {
 }
 
 // ============================================================
+// RENEWAL REQUEST (Student Side)
+// ============================================================
+
+/**
+ * Student submits a request to renew / extend a borrowed book loan
+ */
+export async function requestRenewalBook(transactionId, { renewalDays = 7, notes = '' } = {}) {
+  const { data: tx, error: fetchErr } = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      physical_copies (
+        accession_no,
+        books (*)
+      )
+    `)
+    .eq('id', transactionId)
+    .single();
+
+  if (fetchErr || !tx) {
+    throw new Error('Transaction not found.');
+  }
+
+  if (tx.return_date || tx.status === 'returned') {
+    throw new Error('This book has already been returned.');
+  }
+
+  if (tx.status === 'return_requested') {
+    throw new Error('A return request has already been submitted for this book. Cannot renew.');
+  }
+
+  if (tx.status === 'renewal_requested') {
+    throw new Error('You already have a pending renewal request for this book. Awaiting librarian approval.');
+  }
+
+  // Maximum renewals check (e.g. max 3 renewals per borrow)
+  const currentRenewals = tx.renewal_count || 0;
+  if (currentRenewals >= 3) {
+    throw new Error('Maximum renewal limit (3 times) reached for this loan. Please return the book.');
+  }
+
+  const requestedDays = parseInt(renewalDays, 10) || LOAN_PERIOD_DAYS;
+
+  const { data: updatedTx, error: updateErr } = await supabase
+    .from('transactions')
+    .update({
+      status: 'renewal_requested',
+      renewal_requested_at: new Date().toISOString(),
+      renewal_duration_days: requestedDays,
+      renewal_request_notes: notes || null
+    })
+    .eq('id', transactionId)
+    .select(`
+      *,
+      physical_copies (
+        accession_no,
+        status,
+        books (*)
+      )
+    `)
+    .single();
+
+  if (updateErr) throw updateErr;
+
+  try {
+    const bookTitle = tx.physical_copies?.books?.title || 'Book';
+    await createNotification(
+      tx.user_id,
+      'renewal_requested',
+      'Renewal Request Submitted',
+      `Your request to extend "${bookTitle}" for +${requestedDays} days has been submitted and is awaiting librarian review.`
+    );
+  } catch (notifErr) {
+    console.error('Renewal notification error:', notifErr);
+  }
+
+  return {
+    ...updatedTx,
+    book: updatedTx.physical_copies?.books
+  };
+}
+
+// ============================================================
+// LIBRARIAN RENEWAL APPROVAL & REJECTION
+// ============================================================
+
+/**
+ * Librarian approves renewal request and extends the due date
+ */
+export async function approveRenewalRequest(transactionId, { extensionDays = null, librarianNotes = '' } = {}) {
+  const { data: tx, error: fetchErr } = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      physical_copies (
+        accession_no,
+        status,
+        books (*)
+      )
+    `)
+    .eq('id', transactionId)
+    .single();
+
+  if (fetchErr || !tx) throw new Error('Transaction not found.');
+  if (tx.return_date) throw new Error('Book already returned.');
+
+  const daysToAdd = parseInt(extensionDays, 10) || tx.renewal_duration_days || LOAN_PERIOD_DAYS;
+  
+  // Base date: calculate from current due_date if in the future, or from now if already overdue
+  const currentDueDate = tx.due_date ? new Date(tx.due_date) : new Date();
+  const now = new Date();
+  const baseDate = currentDueDate > now ? currentDueDate : now;
+  
+  const newDueDate = new Date(baseDate);
+  newDueDate.setDate(newDueDate.getDate() + daysToAdd);
+
+  const newRenewalCount = (tx.renewal_count || 0) + 1;
+
+  const { data: updatedTx, error: updateErr } = await supabase
+    .from('transactions')
+    .update({
+      status: 'borrowed',
+      due_date: newDueDate.toISOString(),
+      renewal_count: newRenewalCount,
+      renewal_approved_at: new Date().toISOString(),
+      librarian_notes: librarianNotes || `Renewal approved (+${daysToAdd} days).`
+    })
+    .eq('id', transactionId)
+    .select(`
+      *,
+      physical_copies (
+        accession_no,
+        status,
+        books (*)
+      )
+    `)
+    .single();
+
+  if (updateErr) throw updateErr;
+
+  try {
+    const bookTitle = tx.physical_copies?.books?.title || 'Book';
+    const formattedDue = newDueDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    await createNotification(
+      tx.user_id,
+      'renewal_approved',
+      'Renewal Approved! 📚',
+      `Your renewal request for "${bookTitle}" has been approved! Your new due date is ${formattedDue}.`
+    );
+  } catch (notifErr) {
+    console.error('Renewal approval notification error:', notifErr);
+  }
+
+  return {
+    ...updatedTx,
+    book: updatedTx.physical_copies?.books
+  };
+}
+
+/**
+ * Librarian rejects renewal request
+ */
+export async function rejectRenewalRequest(transactionId, { reason = 'Renewal could not be approved at this time.' } = {}) {
+  const { data: tx, error: fetchErr } = await supabase
+    .from('transactions')
+    .select(`
+      *,
+      physical_copies (books (*))
+    `)
+    .eq('id', transactionId)
+    .single();
+
+  if (fetchErr || !tx) throw new Error('Transaction not found.');
+
+  const { data: updatedTx, error: updateErr } = await supabase
+    .from('transactions')
+    .update({
+      status: 'borrowed',
+      librarian_notes: reason
+    })
+    .eq('id', transactionId)
+    .select(`
+      *,
+      physical_copies (books (*))
+    `)
+    .single();
+
+  if (updateErr) throw updateErr;
+
+  try {
+    const bookTitle = tx.physical_copies?.books?.title || 'Book';
+    const dueStr = tx.due_date ? new Date(tx.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'the current due date';
+    await createNotification(
+      tx.user_id,
+      'renewal_rejected',
+      'Renewal Request Not Approved ⚠️',
+      `Your renewal request for "${bookTitle}" was not approved: ${reason}. Please return the book by ${dueStr}.`
+    );
+  } catch (notifErr) {
+    console.error('Renewal rejection notification error:', notifErr);
+  }
+
+  return updatedTx;
+}
+
+// ============================================================
 // MARK FINE AS PAID
 // ============================================================
 
@@ -605,7 +811,14 @@ export async function getActiveTransactions(userId) {
       .filter(tx => tx.status !== 'rejected' && tx.status !== 'borrow_requested')
       .map(tx => {
         const isOverdue = calculateDaysRemaining(tx.due_date) < 0;
-        const computedStatus = tx.status === 'return_requested' ? 'return_requested' : (isOverdue ? 'overdue' : 'active');
+        let computedStatus = 'active';
+        if (tx.status === 'return_requested') {
+          computedStatus = 'return_requested';
+        } else if (tx.status === 'renewal_requested') {
+          computedStatus = 'renewal_requested';
+        } else if (isOverdue) {
+          computedStatus = 'overdue';
+        }
         
         return {
           ...tx,

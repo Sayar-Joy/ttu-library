@@ -1,0 +1,156 @@
+/* ============================================================
+   TTU Library — Global Styles
+   Tailwind CSS + Shadcn UI (New York) + TTU Brand Theme
+   ============================================================ */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Shadcn CSS Variable System (Light Mode) ──────────────── */
+@layer base {
+  :root {
+    /* ── Backgrounds ── */
+    --background: 0 0% 100%;             /* Pure white */
+    --foreground: 240 10% 10%;           /* Near-black text */
+
+    /* ── Cards & Popovers ── */
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+
+    /* ── PRIMARY: TTU Royal Indigo Blue ── */
+    --primary: 235 45% 35%;              /* Deep academic blue */
+    --primary-foreground: 0 0% 100%;     /* White text on blue */
+
+    /* ── SECONDARY ── */
+    --secondary: 240 4.8% 95.9%;         /* Very light gray */
+    --secondary-foreground: 240 5.9% 10%;
+
+    /* ── MUTED ── */
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    /* ── ACCENT ── */
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
+
+    /* ── DESTRUCTIVE ── */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* ── BORDERS & INPUTS ── */
+    --border: 240 5.9% 90%;              /* Subtle 1px gray */
+    --input: 240 5.9% 90%;
+    --ring: 235 45% 35%;                 /* Focus ring = primary blue */
+
+    /* ── RADIUS ── */
+    --radius: 0.5rem;
+
+    /* ── TTU BRAND YELLOW (Canary/Wreaths) ── */
+    --brand-yellow: 50 100% 50%;
+
+    /* ── SIDEBAR (TTU Indigo Blue) ── */
+    --sidebar-background: 235 45% 25%;   /* Darker indigo for sidebar */
+    --sidebar-foreground: 0 0% 95%;      /* Off-white text */
+    --sidebar-border: 235 30% 30%;       /* Subtle border */
+    --sidebar-accent: 235 40% 32%;       /* Hover/active state */
+    --sidebar-accent-foreground: 0 0% 100%;
+
+    /* ── CHART PALETTE ── */
+    --chart-1: 235 45% 35%;
+    --chart-2: 50 100% 50%;
+    --chart-3: 173 58% 39%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  /* ── Dark Mode (future-proof, not active yet) ── */
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 235 45% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 235 45% 55%;
+    --sidebar-background: 235 40% 10%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-border: 235 30% 18%;
+    --sidebar-accent: 235 35% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+  }
+}
+
+/* ── Global Base Styles ───────────────────────────────────── */
+@layer base {
+  *,
+  *::before,
+  *::after {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  /* ── Modern Typography: Clean Sans Headings ── */
+  h1, h2, h3 {
+    @apply font-sans tracking-tight;
+  }
+
+  h1 {
+    @apply text-3xl font-bold;
+  }
+
+  h2 {
+    @apply text-2xl font-semibold;
+  }
+
+  h3 {
+    @apply text-xl font-semibold;
+  }
+
+  h4, h5, h6 {
+    @apply font-sans font-semibold tracking-tight;
+  }
+
+  a {
+    text-decoration: none;
+    color: inherit;
+  }
+
+  img {
+    max-width: 100%;
+    display: block;
+  }
+
+  button {
+    cursor: pointer;
+  }
+}

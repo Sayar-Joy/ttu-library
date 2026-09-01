@@ -26,6 +26,12 @@ function MyBooksPage() {
   const [submittingReturn, setSubmittingReturn] = useState(false);
   const [returnMessage, setReturnMessage] = useState('');
 
+  // Renewal Request Modal State
+  const [renewModalBook, setRenewModalBook] = useState(null);
+  const [renewalDays, setRenewalDays] = useState(7);
+  const [renewalNotes, setRenewalNotes] = useState('');
+  const [submittingRenewal, setSubmittingRenewal] = useState(false);
+
   const closeSidebar = () => setSidebarOpen(false);
   const handleNavClick = (id) => {
     setActiveNav(id);
@@ -77,9 +83,9 @@ function MyBooksPage() {
       const booksMap = {};
       (booksData.books || []).forEach(b => { booksMap[b.id] = b; });
 
-      // Currently Borrowing & Return Requested
+      // Currently Borrowing, Return Requested & Renewal Requested
       const activeTransactions = (txData.transactions || []).filter(tx => 
-        ['active', 'overdue', 'borrowed', 'return_requested'].includes(tx.status)
+        ['active', 'overdue', 'borrowed', 'return_requested', 'renewal_requested'].includes(tx.status)
       );
       
       const now = new Date();
@@ -104,7 +110,11 @@ function MyBooksPage() {
           daysRemaining,
           progress: tx.progress_percentage || tx.progress || 0,
           status: tx.status,
-          raw_status: tx.raw_status || tx.status
+          raw_status: tx.raw_status || tx.status,
+          renewal_count: tx.renewal_count || 0,
+          renewal_duration_days: tx.renewal_duration_days || 7,
+          renewal_requested_at: tx.renewal_requested_at,
+          renewal_request_notes: tx.renewal_request_notes
         };
       });
       setBorrowingBooks(borrowed);
@@ -129,6 +139,13 @@ function MyBooksPage() {
     setReturnModalBook(book);
     setReturnCondition('good');
     setReturnNotes('');
+    setReturnMessage('');
+  };
+
+  const handleOpenRenewModal = (book) => {
+    setRenewModalBook(book);
+    setRenewalDays(7);
+    setRenewalNotes('');
     setReturnMessage('');
   };
 
@@ -167,6 +184,41 @@ function MyBooksPage() {
     }
   };
 
+  const handleSubmitRenewalRequest = async (e) => {
+    e.preventDefault();
+    if (!renewModalBook) return;
+
+    setSubmittingRenewal(true);
+    setReturnMessage('');
+
+    try {
+      const res = await fetch(`${API_BASE}/transactions/request-renewal`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transactionId: renewModalBook.transactionId,
+          renewalDays: parseInt(renewalDays, 10) || 7,
+          notes: renewalNotes.trim()
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok && data.success) {
+        setReturnMessage(`✅ Renewal request for +${renewalDays} days submitted! Awaiting librarian approval.`);
+        setRenewModalBook(null);
+        await fetchAllData();
+        setTimeout(() => setReturnMessage(''), 6000);
+      } else {
+        alert(data.message || 'Failed to submit renewal request');
+      }
+    } catch (err) {
+      alert('Failed to connect to server. Please try again.');
+    } finally {
+      setSubmittingRenewal(false);
+    }
+  };
+
   const genreColors = {
     'Fiction': '#B0DDFE', 'Classic': 'rgba(143, 111, 70, 0.9)', 'Science': '#B0DDFE',
     'Design': '#E8D5C4', 'History': '#C4B5FD', 'Science Fiction': '#FDE68A',
@@ -186,6 +238,7 @@ function MyBooksPage() {
     borrowed: { bg: '#dbeafe', text: '#1e40af', label: 'Active Loan' },
     overdue: { bg: '#fee2e2', text: '#991b1b', label: 'Overdue' },
     return_requested: { bg: '#fef3c7', text: '#92400e', label: '⏳ Return Pending Verification' },
+    renewal_requested: { bg: '#e0e7ff', text: '#3730a3', label: '⏳ Renewal Pending Approval' },
   };
 
   if (loading) {
@@ -306,9 +359,14 @@ function MyBooksPage() {
                             <div className="borrow-card-info">
                               <h3>{book.title}</h3>
                               <p className="borrow-author">{book.author}</p>
-                              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4 }}>
+                              <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
                                 {book.genre && <span className="borrow-genre-badge" style={{ background: genreColors[book.genre] || '#B0DDFE', color: genreTextColors[book.genre] || '#35627E' }}>{book.genre}</span>}
                                 <span style={{ fontSize: 11, fontFamily: 'monospace', color: '#64748b' }}>Copy: {book.accession_no}</span>
+                                {book.renewal_count > 0 && (
+                                  <span style={{ fontSize: 11, background: '#e0e7ff', color: '#4338ca', padding: '1px 7px', borderRadius: 4, fontWeight: 600 }}>
+                                    Renewed {book.renewal_count}x
+                                  </span>
+                                )}
                               </div>
                             </div>
                             <div className="borrow-card-status">
@@ -335,13 +393,34 @@ function MyBooksPage() {
                               <div style={{ padding: '8px 12px', background: '#fef3c7', borderRadius: '8px', color: '#92400e', fontSize: '13px' }}>
                                 ⏳ Return submitted — Hand in book at circulation desk
                               </div>
+                            ) : book.status === 'renewal_requested' ? (
+                              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div style={{ padding: '8px 12px', background: '#e0e7ff', borderRadius: '8px', color: '#3730a3', fontSize: '13px', flex: 1 }}>
+                                  ⏳ Renewal submitted (+{book.renewal_duration_days || 7} days) — Awaiting approval
+                                </div>
+                                <button 
+                                  className="borrow-return-btn"
+                                  style={{ padding: '8px 14px', fontSize: '12.5px' }}
+                                  onClick={() => handleOpenReturnModal(book)}
+                                >
+                                  Return Instead 🔄
+                                </button>
+                              </div>
                             ) : (
-                              <button 
-                                className="borrow-return-btn"
-                                onClick={() => handleOpenReturnModal(book)}
-                              >
-                                Request Return 🔄
-                              </button>
+                              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                <button 
+                                  className="borrow-renew-btn"
+                                  onClick={() => handleOpenRenewModal(book)}
+                                >
+                                  Request Renewal ⏳
+                                </button>
+                                <button 
+                                  className="borrow-return-btn"
+                                  onClick={() => handleOpenReturnModal(book)}
+                                >
+                                  Request Return 🔄
+                                </button>
+                              </div>
                             )}
                           </div>
                         </div>
@@ -359,7 +438,7 @@ function MyBooksPage() {
                   <div className="mybooks-empty">
                     <div className="empty-icon">🪪</div>
                     <h3>No requests history</h3>
-                    <p>When you submit borrow or return requests, you can track their approval status here.</p>
+                    <p>When you submit borrow, renewal, or return requests, you can track their approval status here.</p>
                   </div>
                 ) : (
                   <div className="mybooks-requests-list">
@@ -367,13 +446,27 @@ function MyBooksPage() {
                       <div key={req.id} className="request-card">
                         <div className="request-card-left">
                           <div className="request-type-badge">
-                            {req.status === 'borrow_requested' ? '📥 Borrow Request' : req.status === 'return_requested' ? '🔄 Return Request' : req.status === 'borrowed' ? '✓ Borrow Approved' : req.status === 'returned' ? '✓ Return Completed' : '✕ Rejected'}
+                            {req.status === 'borrow_requested' ? '📥 Borrow Request' : 
+                             req.status === 'renewal_requested' ? `⏳ Renewal Request (+${req.renewal_duration_days || 7}d)` :
+                             req.status === 'return_requested' ? '🔄 Return Request' : 
+                             req.status === 'borrowed' ? (req.renewal_count > 0 ? '✓ Renewal Approved' : '✓ Borrow Approved') : 
+                             req.status === 'returned' ? '✓ Return Completed' : '✕ Rejected'}
                           </div>
                           <h4>{req.book?.title || 'Book Title'}</h4>
                           <p style={{ margin: '2px 0 6px', fontSize: 13, color: '#64748b' }}>by {req.book?.author || '—'}</p>
                           {req.borrow_request_notes && (
                             <p style={{ fontSize: 12.5, color: '#475569', margin: '4px 0' }}>
                               <strong>Your Note:</strong> {req.borrow_request_notes}
+                            </p>
+                          )}
+                          {req.renewal_request_notes && (
+                            <p style={{ fontSize: 12.5, color: '#475569', margin: '4px 0' }}>
+                              <strong>Renewal Reason:</strong> {req.renewal_request_notes}
+                            </p>
+                          )}
+                          {req.return_request_notes && (
+                            <p style={{ fontSize: 12.5, color: '#475569', margin: '4px 0' }}>
+                              <strong>Return Note:</strong> {req.return_request_notes}
                             </p>
                           )}
                           {req.librarian_notes && (
@@ -384,10 +477,16 @@ function MyBooksPage() {
                         </div>
                         <div className="request-card-right">
                           <span className={`request-status-pill ${req.status}`}>
-                            {req.status === 'borrow_requested' ? '⏳ Under Review' : req.status === 'return_requested' ? '⏳ Awaiting Drop-off' : req.status === 'borrowed' ? 'Active' : req.status === 'returned' ? 'Returned' : 'Rejected'}
+                            {req.status === 'borrow_requested' ? '⏳ Under Review' : 
+                             req.status === 'renewal_requested' ? '⏳ Under Review' :
+                             req.status === 'return_requested' ? '⏳ Awaiting Drop-off' : 
+                             req.status === 'borrowed' ? 'Active' : 
+                             req.status === 'returned' ? 'Returned' : 'Rejected'}
                           </span>
                           <span style={{ fontSize: 11.5, color: '#94a3b8' }}>
-                            {req.borrow_requested_at ? new Date(req.borrow_requested_at).toLocaleDateString() : (req.created_at ? new Date(req.created_at).toLocaleDateString() : '—')}
+                            {req.renewal_requested_at ? new Date(req.renewal_requested_at).toLocaleDateString() : 
+                             req.borrow_requested_at ? new Date(req.borrow_requested_at).toLocaleDateString() : 
+                             (req.created_at ? new Date(req.created_at).toLocaleDateString() : '—')}
                           </span>
                         </div>
                       </div>
@@ -513,6 +612,91 @@ function MyBooksPage() {
                 </button>
                 <button type="submit" className="btn-submit-request" disabled={submittingReturn}>
                   {submittingReturn ? 'Submitting…' : 'Submit Return Request 📥'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Renewal Request Modal */}
+      {renewModalBook && (
+        <div className="return-modal-overlay" onClick={() => setRenewModalBook(null)}>
+          <div className="return-modal" onClick={e => e.stopPropagation()}>
+            <div className="return-modal-header">
+              <h3>Request Loan Renewal ⏳</h3>
+              <button className="return-modal-close" onClick={() => setRenewModalBook(null)}>×</button>
+            </div>
+            
+            <form onSubmit={handleSubmitRenewalRequest} className="return-modal-body">
+              <div className="return-book-preview">
+                <strong>{renewModalBook.title}</strong>
+                <p>Accession: {renewModalBook.accession_no} &bull; Current Due: {renewModalBook.dueDate ? new Date(renewModalBook.dueDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—'}</p>
+                {renewModalBook.renewal_count > 0 && (
+                  <div style={{ color: '#4f46e5', fontSize: '12px', fontWeight: 600, marginTop: 4 }}>
+                    ℹ️ Previously renewed {renewModalBook.renewal_count} time(s) (Max 3 renewals allowed)
+                  </div>
+                )}
+                {renewModalBook.daysRemaining < 0 && (
+                  <div style={{ color: '#b91c1c', fontSize: '12px', fontWeight: 600, marginTop: 4 }}>
+                    ⚠️ Currently overdue by {Math.abs(renewModalBook.daysRemaining)} days. Renewal will extend from today.
+                  </div>
+                )}
+              </div>
+
+              <div className="form-group" style={{ marginTop: 14 }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                  Select Extension Period
+                </label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {[
+                    { days: 7, label: '+7 Days', sub: '1 Week' },
+                    { days: 14, label: '+14 Days', sub: '2 Weeks' },
+                    { days: 21, label: '+21 Days', sub: '3 Weeks' },
+                  ].map(opt => (
+                    <button
+                      key={opt.days}
+                      type="button"
+                      onClick={() => setRenewalDays(opt.days)}
+                      style={{
+                        padding: '10px 8px',
+                        borderRadius: '10px',
+                        border: renewalDays === opt.days ? '2px solid #4f46e5' : '1px solid #cbd5e1',
+                        background: renewalDays === opt.days ? '#eef2ff' : '#ffffff',
+                        color: renewalDays === opt.days ? '#4338ca' : '#475569',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        fontSize: '13px'
+                      }}
+                    >
+                      <div>{opt.label}</div>
+                      <div style={{ fontSize: '11px', fontWeight: 400, opacity: 0.8 }}>{opt.sub}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="form-group" style={{ marginTop: 14 }}>
+                <label style={{ display: 'block', marginBottom: '6px', fontSize: '13px', fontWeight: 600, color: '#334155' }}>
+                  Reason for Extension (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  className="form-control"
+                  placeholder="e.g. Preparing for exam / Writing research paper"
+                  value={renewalNotes}
+                  onChange={e => setRenewalNotes(e.target.value)}
+                  style={{ width: '100%', padding: '10px 12px', borderRadius: '10px', border: '1px solid #cbd5e1', fontSize: '13.5px', fontFamily: 'inherit' }}
+                />
+              </div>
+
+              <div className="return-modal-footer">
+                <button type="button" className="btn-cancel" onClick={() => setRenewModalBook(null)}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn-submit-request" style={{ background: '#4f46e5' }} disabled={submittingRenewal}>
+                  {submittingRenewal ? 'Submitting…' : `Submit Renewal (+${renewalDays}d) ⏳`}
                 </button>
               </div>
             </form>

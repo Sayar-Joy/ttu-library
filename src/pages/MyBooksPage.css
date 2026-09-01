@@ -384,19 +384,49 @@
   color: #dc2626;
 }
 
-/* Return button */
+/* Action buttons: Renew & Return */
+.borrow-renew-btn {
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 14px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+.borrow-renew-btn:hover:not(:disabled) {
+  background: #4338ca;
+  transform: translateY(-1px);
+}
+.borrow-renew-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .borrow-return-btn {
-  margin-top: 12px;
-  width: 100%;
-  padding: 10px 16px;
+  flex: 1;
+  min-width: 140px;
+  padding: 10px 14px;
   background: #366380;
   color: white;
   border: none;
   border-radius: 8px;
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 .borrow-return-btn:hover:not(:disabled) {
   background: #2d5369;
@@ -652,6 +682,12 @@
   background: #fef3c7;
   color: #92400e;
   border: 1px solid #fde68a;
+}
+
+.request-status-pill.renewal_requested {
+  background: #e0e7ff;
+  color: #3730a3;
+  border: 1px solid #c7d2fe;
 }
 
 .request-status-pill.borrowed,

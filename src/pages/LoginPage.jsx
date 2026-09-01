@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import supabase from '../lib/supabase';
-import './LoginPage.css';
+import { BookOpen, CreditCard, Zap, Shield, AlertCircle, Loader2, Star, Mail } from 'lucide-react';
 
 function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -100,77 +100,95 @@ function LoginPage() {
   };
 
   return (
-    <div className="auth-page">
+    <div className="flex w-full min-h-screen">
       {/* Left Side - Immersive Visual */}
-      <div className="auth-left">
-        <div className="auth-left-bg" />
-        <div className="auth-left-overlay" />
-        <div className="auth-left-content">
-          <div className="auth-university-tag">Taninthayi Technological University</div>
-          <h1 className="auth-left-title">TTU Library</h1>
-          <p className="auth-left-subtitle">
+      <div className="relative w-1/2 min-h-screen overflow-hidden flex-shrink-0 hidden lg:flex">
+        {/* Background image */}
+        <div
+          className="absolute inset-0 bg-cover bg-center brightness-[0.85]"
+          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=2790&auto=format&fit=crop')" }}
+        />
+        {/* Gradient overlay */}
+        <div className="absolute inset-0 bg-gradient-to-b from-primary/40 to-primary/95" />
+
+        {/* Content */}
+        <div className="relative z-10 p-12 pb-16 flex flex-col justify-end gap-4 max-w-[600px]">
+          <span className="inline-flex self-start items-center gap-1.5 bg-white/15 border border-white/20 text-white/90 text-xs font-semibold px-3.5 py-1 rounded-full uppercase tracking-wider">
+            Thanlyin Technological University
+          </span>
+
+          <h1 className="text-[42px] font-extrabold leading-[1.15] tracking-tight text-white">
+            TTU Library
+          </h1>
+
+          <p className="text-lg text-white/75 leading-relaxed">
             Your sanctuary for knowledge, research, and academic<br />inspiration.
           </p>
 
-          <div className="auth-feature-list">
-            <div className="auth-feature-item">
-              <span className="feature-icon">📚</span>
+          <div className="flex flex-col gap-3 border-t border-white/12 pt-5">
+            <div className="flex items-center gap-3 text-white/85 text-sm">
+              <BookOpen className="w-[18px] h-[18px] flex-shrink-0 opacity-80" />
               <span>Browse thousands of books and engineering references</span>
             </div>
-            <div className="auth-feature-item">
-              <span className="feature-icon">🪪</span>
+            <div className="flex items-center gap-3 text-white/85 text-sm">
+              <CreditCard className="w-[18px] h-[18px] flex-shrink-0 opacity-80" />
               <span>Verified student membership & seamless checkouts</span>
             </div>
-            <div className="auth-feature-item">
-              <span className="feature-icon">⚡</span>
+            <div className="flex items-center gap-3 text-white/85 text-sm">
+              <Zap className="w-[18px] h-[18px] flex-shrink-0 opacity-80" />
               <span>Fast one-click university Google authentication</span>
             </div>
           </div>
         </div>
-        <div className="auth-left-badge">
-          <svg width="28" height="24" viewBox="0 0 28 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M14 0L17.09 8.36H26.18L19.05 13.78L21.92 22L14 17.18L6.08 22L8.95 13.78L1.82 8.36H10.91L14 0Z" fill="white"/>
-          </svg>
+
+        {/* Top-right badge */}
+        <div className="absolute top-6 right-6 w-14 h-14 rounded-full bg-white/15 border border-white/20 flex items-center justify-content-center z-20">
+          <Star className="w-6 h-6 text-white mx-auto" />
         </div>
       </div>
 
-      {/* Right Side - Google OAuth Only */}
-      <div className="auth-right">
-        <div className="auth-right-inner">
-          <div className="auth-card-box">
-            <div className="auth-portal-header">
-              <div className="auth-logo-badge">📖</div>
-              <h2 className="form-title">Student & Staff Portal</h2>
-              <p className="form-subtitle">
+      {/* Right Side - Google OAuth */}
+      <div className="flex-1 flex items-center justify-center bg-background min-h-screen px-6 py-10">
+        <div className="w-full max-w-[440px] flex flex-col items-stretch">
+          {/* Card */}
+          <div className="bg-card border border-border rounded-2xl p-10 shadow-sm">
+            {/* Header */}
+            <div className="text-center mb-7">
+              <div className="w-13 h-13 mx-auto mb-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                <BookOpen className="w-6 h-6 text-primary" />
+              </div>
+              <h2 className="text-[22px] font-bold text-foreground tracking-tight mb-2">
+                Student & Staff Portal
+              </h2>
+              <p className="text-sm text-muted-foreground leading-relaxed">
                 Sign in with your Google account to access your bookshelf and library services.
               </p>
             </div>
 
+            {/* Error banner */}
             {error && (
-              <div className="auth-error-banner">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <circle cx="8" cy="8" r="7" stroke="#E74C3C" strokeWidth="1.5"/>
-                  <path d="M8 5v3M8 10.5v.5" stroke="#E74C3C" strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
+              <div className="flex items-center gap-2.5 bg-red-50 border border-red-200 text-red-700 px-3.5 py-3 rounded-lg text-[13px] mb-5">
+                <AlertCircle className="w-4 h-4 flex-shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
-            <div className="oauth-action-container">
+            {/* Google OAuth button */}
+            <div className="flex flex-col gap-4">
               <button
                 type="button"
-                className="google-oauth-btn"
+                className="w-full bg-foreground text-background border-none rounded-xl px-5 py-3.5 text-[15px] font-semibold flex items-center justify-center gap-3 transition-all duration-200 hover:opacity-90 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
                 onClick={handleGoogleLogin}
                 disabled={loading}
               >
                 {loading ? (
-                  <div className="oauth-loading-state">
-                    <span className="oauth-spinner" />
+                  <div className="flex items-center gap-2.5">
+                    <Loader2 className="w-[18px] h-[18px] animate-spin" />
                     <span>Connecting to Google…</span>
                   </div>
                 ) : (
                   <>
-                    <svg className="google-icon" width="20" height="20" viewBox="0 0 24 24">
+                    <svg className="flex-shrink-0" width="20" height="20" viewBox="0 0 24 24">
                       <path
                         fill="#4285F4"
                         d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17z"
@@ -193,22 +211,35 @@ function LoginPage() {
                 )}
               </button>
 
-              <div className="oauth-security-note">
-                <span className="security-icon">🔒</span>
+              <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground text-center">
+                <Shield className="w-3 h-3" />
                 <span>Secure OAuth 2.0 single sign-on powered by Supabase Auth</span>
               </div>
             </div>
 
-            <div className="auth-membership-info-card">
-              <div className="info-card-badge">First Time Signing In?</div>
-              <p>
+            {/* First-time info card */}
+            <div className="mt-6 p-4 rounded-lg bg-primary/5 border border-primary/10">
+              <div className="text-[11px] font-bold uppercase tracking-wider text-primary mb-1.5">
+                First Time Signing In?
+              </div>
+              <p className="text-[13px] text-muted-foreground leading-snug">
                 Your account will be created automatically. To borrow books, you'll simply fill out a quick membership verification form for the librarian to approve.
               </p>
             </div>
           </div>
 
-          <div className="auth-footer">
-            <p>Need assistance? <a href="mailto:library@ttu.edu.mm" className="auth-footer-link">Contact Librarian Desk</a></p>
+          {/* Footer */}
+          <div className="text-center mt-6">
+            <p className="text-[13px] text-muted-foreground">
+              Need assistance?{' '}
+              <a
+                href="mailto:library@ttu.edu.mm"
+                className="text-primary font-medium hover:underline transition-colors inline-flex items-center gap-1"
+              >
+                <Mail className="w-3 h-3" />
+                Contact Librarian Desk
+              </a>
+            </p>
           </div>
         </div>
       </div>

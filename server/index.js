@@ -572,8 +572,39 @@ app.post('/api/transactions/request-return', async (req, res) => {
 });
 
 /**
+ * POST /api/transactions/request-renewal
+ * Student submits a request to renew / extend a borrowed book loan
+ */
+app.post('/api/transactions/request-renewal', async (req, res) => {
+  try {
+    const { transactionId, renewalDays, notes } = req.body;
+
+    if (!transactionId) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'transactionId is required' 
+      });
+    }
+
+    const transaction = await transactionService.requestRenewalBook(transactionId, {
+      renewalDays: parseInt(renewalDays, 10) || 7,
+      notes: notes ? notes.trim() : ''
+    });
+
+    res.json({
+      success: true,
+      message: `Renewal request submitted successfully (+${transaction.renewal_duration_days || 7} days). Awaiting librarian review.`,
+      transaction
+    });
+  } catch (err) {
+    console.error('Request renewal error:', err);
+    res.status(400).json({ success: false, message: err.message });
+  }
+});
+
+/**
  * GET /api/transactions/requests/:userId
- * Get user's borrow and return requests history
+ * Get user's borrow, renewal, and return requests history
  */
 app.get('/api/transactions/requests/:userId', async (req, res) => {
   try {

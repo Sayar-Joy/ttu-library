@@ -2,12 +2,13 @@ import { Router } from 'express';
 import { verifyLibrarian } from '../middleware/verifyLibrarian.js';
 
 // ── Controllers ───────────────────────────────────────────────
-import { getAllUsers, getUserDetails } from '../controllers/adminUserController.js';
+import { getAllUsers, getUserDetails, updateUserRole } from '../controllers/adminUserController.js';
 import { addBookRecord, addPhysicalCopy, getInventoryStatus, updateCopyStatus } from '../controllers/adminCatalogController.js';
 import { getMembershipApplications, approveMembership, rejectMembership } from '../controllers/adminMembershipController.js';
 import { processReturn, markFinePaid } from '../controllers/adminTransactionController.js';
 import { 
   getBorrowRequests, approveBorrowRequest, rejectBorrowRequest,
+  getRenewalRequests, approveRenewalRequest, rejectRenewalRequest,
   getReturnRequests, approveReturnRequest, rejectReturnRequest 
 } from '../controllers/adminCirculationController.js';
 import {
@@ -53,7 +54,7 @@ router.patch('/theses/:id', updateThesisHandler);
 router.delete('/theses/:id', deleteThesisHandler);
 
 // ============================================================
-// Circulation Requests (Borrow & Return Requests)
+// Circulation Requests (Borrow, Renewal & Return Requests)
 // ============================================================
 
 // GET /api/admin/requests/borrow - List pending borrow requests
@@ -64,6 +65,15 @@ router.patch('/requests/borrow/:txId/approve', approveBorrowRequest);
 
 // PATCH /api/admin/requests/borrow/:txId/reject - Reject borrow request
 router.patch('/requests/borrow/:txId/reject', rejectBorrowRequest);
+
+// GET /api/admin/requests/renewal - List pending renewal requests
+router.get('/requests/renewal', getRenewalRequests);
+
+// PATCH /api/admin/requests/renewal/:txId/approve - Approve renewal request & extend due date
+router.patch('/requests/renewal/:txId/approve', approveRenewalRequest);
+
+// PATCH /api/admin/requests/renewal/:txId/reject - Reject renewal request
+router.patch('/requests/renewal/:txId/reject', rejectRenewalRequest);
 
 // GET /api/admin/requests/return - List pending return requests
 router.get('/requests/return', getReturnRequests);
@@ -79,13 +89,18 @@ router.patch('/requests/return/:txId/reject', rejectReturnRequest);
 // ============================================================
 
 // GET /api/admin/users
-// Fetch all students with active borrow counts
-// Query params: ?search=<name|id|email>&page=1&limit=50
+// Fetch all users with active borrow counts & optional role filtering
+// Query params: ?role=<all|student|librarian>&search=<name|id|email>&page=1&limit=50
 router.get('/users', getAllUsers);
 
 // GET /api/admin/users/:userId
-// Fetch a specific student's profile, active borrows, and unpaid fines
+// Fetch a specific user's profile, active borrows, and unpaid fines
 router.get('/users/:userId', getUserDetails);
+
+// PATCH /api/admin/users/:userId/role
+// Update a user's role (upgrade to admin/librarian or demote to student)
+// Body: { role: 'student' | 'librarian' }
+router.patch('/users/:userId/role', updateUserRole);
 
 // ============================================================
 // Catalog & Inventory Management

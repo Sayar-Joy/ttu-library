@@ -3,6 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
 import MembershipModal from '../components/MembershipModal';
 import ThesisPdfViewer from '../components/ThesisPdfViewer';
+import InternationalCatalogCard from '../components/InternationalCatalogCard';
 import './BookDetailPage.css';
 
 const API_BASE = '/api';
@@ -297,34 +298,34 @@ function BookDetailPage() {
                ) : (
                  <>
                    <div className="meta-item">
-                     <span className="meta-label">ISBN</span>
-                     <span className="meta-value">{book.isbn || 'N/A'}</span>
-                   </div>
-                   <div className="meta-item">
-                     <span className="meta-label">Published</span>
-                     <span className="meta-value">{book.year || '—'}</span>
-                   </div>
-                   <div className="meta-item">
-                     <span className="meta-label">Pages</span>
-                     <span className="meta-value">{book.pages || book.total_pages || '—'}</span>
-                   </div>
-                   <div className="meta-item">
-                     <span className="meta-label">Copies</span>
-                     <span className="meta-value">
-                       <span className="copies-available">{book.availableCopies ?? 1}</span>
-                       <span className="copies-sep"> / </span>
-                       <span className="copies-total">{book.totalCopies ?? 1}</span>
-                       <span className="copies-label"> available</span>
-                     </span>
-                   </div>
-                   <div className="meta-item">
-                     <span className="meta-label">Saved</span>
-                     <span className="meta-value">{book.totalSaved ?? 0} times</span>
-                   </div>
-                   <div className="meta-item">
-                     <span className="meta-label">Finished</span>
-                     <span className="meta-value">{book.totalFinished ?? 0} times</span>
-                   </div>
+                      <span className="meta-label">Call No</span>
+                      <span className="meta-value" style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{book.class_no || 'GEN-001'}</span>
+                    </div>
+                    <div className="meta-item">
+                      <span className="meta-label">ISBN</span>
+                      <span className="meta-value">{book.isbn || 'N/A'}</span>
+                    </div>
+                    <div className="meta-item">
+                      <span className="meta-label">Publisher</span>
+                      <span className="meta-value">{book.publisher || 'Not Identified'}</span>
+                    </div>
+                    <div className="meta-item">
+                      <span className="meta-label">Published</span>
+                      <span className="meta-value">{book.year || '—'}</span>
+                    </div>
+                    <div className="meta-item">
+                      <span className="meta-label">Pages</span>
+                      <span className="meta-value">{book.total_pages || book.pages || '—'}</span>
+                    </div>
+                    <div className="meta-item">
+                      <span className="meta-label">Copies</span>
+                      <span className="meta-value">
+                        <span className="copies-available">{book.availableCopies ?? 1}</span>
+                        <span className="copies-sep"> / </span>
+                        <span className="copies-total">{book.totalCopies ?? 1}</span>
+                        <span className="copies-label"> available</span>
+                      </span>
+                    </div>
                  </>
                )}
              </div>
@@ -341,14 +342,9 @@ function BookDetailPage() {
             </div>
             <p className="bookdetail-author">by <strong>{book.author}</strong> {book.student_roll ? `(${book.student_roll})` : ''}</p>
 
-            <div className="bookdetail-divider" />
-
-            {/* Synopsis */}
+            {/* International Standard Library Catalog */}
             <div className="bookdetail-section">
-              <h3 className="section-heading">{(book.isThesis || book.genre === 'Thesis') ? 'Thesis Abstract & Summary' : 'About This Book'}</h3>
-              <p className="bookdetail-synopsis">
-                {book.description || book.review || `${book.title} is a ${book.genre?.toLowerCase() || 'academic'} work by ${book.author}, published in ${book.year}. This title is part of the TTU Library collection.`}
-              </p>
+              <InternationalCatalogCard book={book} />
             </div>
 
             {/* Action Buttons */}

@@ -288,3 +288,150 @@ export async function rejectReturnRequest(req, res) {
     res.status(500).json({ success: false, message: err.message || 'Failed to reject return request.' });
   }
 }
+
+/**
+ * GET /api/admin/requests/renewal
+ * List pending/all renewal requests
+ */
+export async function getRenewalRequests(req, res) {
+  try {
+    const { status = 'renewal_requested', search = '', page = 1, limit = 15 } = req.query;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const pageSize = Math.max(1, parseInt(limit, 10) || 15);
+    const from = (pageNum - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    let query = supabase
+      .from('transactions')
+      .select(`
+        id,
+        user_id,
+        accession_no,
+        status,
+        borrow_date,
+        due_date,
+        return_date,
+        renewal_requested_at,
+        renewal_request_notes,
+        renewal_duration_days,
+        renewal_count,
+        renewal_approved_at,
+        librarian_notes,
+        fine_status,
+        final_fine_amount,
+        users (id, name, email, avatar_url, student_id, roll_number, major, year, phone),
+        physical_copies (
+          accession_no,
+          status,
+          books (id, title, author, isbn, cover_url, category)
+        )
+      `, { count: 'exact' });
+
+    if (status !== 'all') {
+      query = query.eq('status', status);
+    }
+
+    query = query.order('renewal_requested_at', { ascending: false, nullsFirst: false }).range(from, to);
+
+    const { data: requests, error, count: totalCount } = await query;
+    if (error) throw error;
+
+    const { count: pendingCount } = await supabase
+      .from('transactions')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'renewal_requested');
+
+    const formatted = (requests || []).map(r => {
+      const isOverdue = transactionService.calculateDaysRemaining(r.due_date) < 0;
+      const currentFine = transactionService.calculateFine(r.due_date);
+
+      return {
+        id: r.id,
+        user_id: r.user_id,
+        student: r.users || {},
+        accession_no: r.accession_no,
+        status: r.status,
+        borrow_date: r.borrow_date,
+        due_date: r.due_date,
+        renewal_requested_at: r.renewal_requested_at,
+        renewal_request_notes: r.renewal_request_notes,
+        renewal_duration_days: r.renewal_duration_days || 7,
+        renewal_count: r.renewal_count || 0,
+        renewal_approved_at: r.renewal_approved_at,
+        librarian_notes: r.librarian_notes,
+        is_overdue: isOverdue,
+        current_fine: currentFine,
+        days_remaining: transactionService.calculateDaysRemaining(r.due_date),
+        book: r.physical_copies?.books || {}
+      };
+    });
+
+    let filtered = formatted;
+    if (search) {
+      const q = search.toLowerCase();
+      filtered = formatted.filter(r => 
+        r.student?.name?.toLowerCase().includes(q) ||
+        r.student?.email?.toLowerCase().includes(q) ||
+        r.student?.roll_number?.toLowerCase().includes(q) ||
+        r.student?.student_id?.toLowerCase().includes(q) ||
+        r.book?.title?.toLowerCase().includes(q) ||
+        r.accession_no?.toLowerCase().includes(q)
+      );
+    }
+
+    res.json({
+      success: true,
+      requests: filtered,
+      total: totalCount || 0,
+      total_pages: Math.ceil((totalCount || 0) / pageSize),
+      page: pageNum,
+      pending_count: pendingCount || 0
+    });
+  } catch (err) {
+    console.error('Error fetching renewal requests:', err);
+    res.status(500).json({ success: false, message: err.message || 'Failed to fetch renewal requests.' });
+  }
+}
+
+/**
+ * PATCH /api/admin/requests/renewal/:txId/approve
+ */
+export async function approveRenewalRequest(req, res) {
+  try {
+    const { txId } = req.params;
+    const { extensionDays, librarianNotes } = req.body;
+
+    const updatedTx = await transactionService.approveRenewalRequest(txId, { extensionDays, librarianNotes });
+
+    res.json({
+      success: true,
+      message: 'Loan renewal request approved successfully.',
+      transaction: updatedTx
+    });
+  } catch (err) {
+    console.error('Error approving renewal request:', err);
+    res.status(500).json({ success: false, message: err.message || 'Failed to approve renewal request.' });
+  }
+}
+
+/**
+ * PATCH /api/admin/requests/renewal/:txId/reject
+ */
+export async function rejectRenewalRequest(req, res) {
+  try {
+    const { txId } = req.params;
+    const { reason } = req.body;
+
+    const updatedTx = await transactionService.rejectRenewalRequest(txId, { reason });
+
+    res.json({
+      success: true,
+      message: 'Renewal request rejected.',
+      transaction: updatedTx
+    });
+  } catch (err) {
+    console.error('Error rejecting renewal request:', err);
+    res.status(500).json({ success: false, message: err.message || 'Failed to reject renewal request.' });
+  }
+}
+
