@@ -105,57 +105,58 @@ function LoginPage() {
       <div className="relative w-1/2 min-h-screen overflow-hidden flex-shrink-0 hidden lg:flex">
         {/* Background image */}
         <div
-          className="absolute inset-0 bg-cover bg-center brightness-[0.85]"
-          style={{ backgroundImage: "url('https://images.unsplash.com/photo-1507842217343-583bb7270b66?q=80&w=2790&auto=format&fit=crop')" }}
+          className="absolute inset-0 bg-cover bg-[center_top] brightness-[0.95]"
+          style={{ backgroundImage: "url('/images/login.png')" }}
         />
         {/* Gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-b from-primary/40 to-primary/95" />
+        <div className="absolute inset-0 bg-gradient-to-t from-[#121c2e]/95 via-[#1b2b48]/45 to-transparent" />
 
         {/* Content */}
         <div className="relative z-10 p-12 pb-16 flex flex-col justify-end gap-4 max-w-[600px]">
-          <span className="inline-flex self-start items-center gap-1.5 bg-white/15 border border-white/20 text-white/90 text-xs font-semibold px-3.5 py-1 rounded-full uppercase tracking-wider">
-            Thanlyin Technological University
+          <span className="inline-flex self-start items-center gap-2 bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-semibold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-sm">
+            <img src="/images/logo.jpg" alt="TTU Logo" className="w-4 h-4 rounded-full object-contain bg-white p-0.5" />
+            <span>Thanlyin Technological University</span>
           </span>
 
           <h1 className="text-[42px] font-extrabold leading-[1.15] tracking-tight text-white">
             TTU Library
           </h1>
 
-          <p className="text-lg text-white/75 leading-relaxed">
+          <p className="text-lg text-white/85 leading-relaxed">
             Your sanctuary for knowledge, research, and academic<br />inspiration.
           </p>
 
-          <div className="flex flex-col gap-3 border-t border-white/12 pt-5">
-            <div className="flex items-center gap-3 text-white/85 text-sm">
-              <BookOpen className="w-[18px] h-[18px] flex-shrink-0 opacity-80" />
+          <div className="flex flex-col gap-3 border-t border-white/15 pt-5">
+            <div className="flex items-center gap-3 text-white/90 text-sm">
+              <BookOpen className="w-[18px] h-[18px] flex-shrink-0 opacity-90" />
               <span>Browse thousands of books and engineering references</span>
             </div>
-            <div className="flex items-center gap-3 text-white/85 text-sm">
-              <CreditCard className="w-[18px] h-[18px] flex-shrink-0 opacity-80" />
+            <div className="flex items-center gap-3 text-white/90 text-sm">
+              <CreditCard className="w-[18px] h-[18px] flex-shrink-0 opacity-90" />
               <span>Verified student membership & seamless checkouts</span>
             </div>
-            <div className="flex items-center gap-3 text-white/85 text-sm">
-              <Zap className="w-[18px] h-[18px] flex-shrink-0 opacity-80" />
+            <div className="flex items-center gap-3 text-white/90 text-sm">
+              <Zap className="w-[18px] h-[18px] flex-shrink-0 opacity-90" />
               <span>Fast one-click university Google authentication</span>
             </div>
           </div>
         </div>
 
-        {/* Top-right badge */}
-        <div className="absolute top-6 right-6 w-14 h-14 rounded-full bg-white/15 border border-white/20 flex items-center justify-content-center z-20">
-          <Star className="w-6 h-6 text-white mx-auto" />
+        {/* Top-right crest badge */}
+        <div className="absolute top-6 right-6 w-14 h-14 rounded-2xl bg-white/90 backdrop-blur-md border border-white/40 flex items-center justify-center z-20 shadow-lg p-2 overflow-hidden">
+          <img src="/images/logo.jpg" alt="TTU Crest" className="w-full h-full object-contain" />
         </div>
       </div>
 
       {/* Right Side - Google OAuth */}
-      <div className="flex-1 flex items-center justify-center bg-background min-h-screen px-6 py-10">
+      <div className="flex-1 flex items-center justify-center bg-transparent min-h-screen px-6 py-10">
         <div className="w-full max-w-[440px] flex flex-col items-stretch">
           {/* Card */}
-          <div className="bg-card border border-border rounded-2xl p-10 shadow-sm">
+          <div className="bg-white/95 backdrop-blur-md border border-border/80 rounded-2xl p-8 sm:p-10 shadow-2xl">
             {/* Header */}
             <div className="text-center mb-7">
-              <div className="w-13 h-13 mx-auto mb-4 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-primary" />
+              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white shadow-md border border-border/80 flex items-center justify-center p-2 overflow-hidden">
+                <img src="/images/logo.jpg" alt="TTU Logo" className="w-full h-full object-contain" />
               </div>
               <h2 className="text-[22px] font-bold text-foreground tracking-tight mb-2">
                 Student & Staff Portal

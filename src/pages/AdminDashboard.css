@@ -7,7 +7,9 @@
 .admin-layout {
   display: flex;
   min-height: 100vh;
-  background: #f8fafc;
+  background: rgba(248, 250, 252, 0.88);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   color: #0f172a;
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
@@ -42,16 +44,21 @@
   width: 38px;
   height: 38px;
   border-radius: 10px;
-  background: hsl(235, 45%, 35%);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 18px;
-  font-weight: 700;
-  color: #ffffff;
   flex-shrink: 0;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  padding: 3px;
+  overflow: hidden;
+}
+
+.admin-sidebar-logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .admin-sidebar-brand-text h1 {

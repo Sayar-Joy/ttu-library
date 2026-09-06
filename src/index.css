@@ -109,14 +109,48 @@
   }
 
   body {
-    @apply bg-background text-foreground font-sans;
+    @apply text-foreground font-sans;
     font-feature-settings: "rlig" 1, "calt" 1;
     line-height: 1.5;
     min-height: 100vh;
+    background-color: transparent;
+    position: relative;
+  }
+
+  body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -10;
+    background-image: url('/images/home.jpg');
+    background-size: contain;
+    background-position: center center;
+    background-repeat: no-repeat;
+    filter: contrast(1.25) brightness(0.97);
+    opacity: 0.9;
+    pointer-events: none;
   }
 
   #root {
     min-height: 100vh;
+    background: transparent;
+  }
+
+  /* Ensure page wrappers allow home.jpg wallpaper to shine through */
+  .profile-page,
+  .mybooks-page,
+  .friends-page,
+  .fp-page,
+  .notification-page,
+  .bookdetail-page,
+  .checkout-page,
+  .orionpax-page {
+    background: transparent !important;
   }
 
   /* ── Modern Typography: Clean Sans Headings ── */

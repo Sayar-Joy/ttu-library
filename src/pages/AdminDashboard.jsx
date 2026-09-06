@@ -185,7 +185,7 @@ export default function AdminDashboard() {
         <div className="admin-sidebar-header">
           <div className="admin-sidebar-brand">
             <div className="admin-sidebar-logo">
-              <BookOpen className="w-5 h-5 text-white" />
+              <img src="/images/logo.jpg" alt="TTU Logo" />
             </div>
             <div className="admin-sidebar-brand-text">
               <h1>TTU Library</h1>

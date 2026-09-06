@@ -9,7 +9,7 @@
 .fp-page {
   --accent: #366380;
   --accent-dark: #485E78;
-  --bg: #FAF9FB;
+  --bg: transparent;
   --text-primary: #1B1C1D;
   --text-secondary: #43474D;
   --text-muted: #6B7280;
@@ -26,6 +26,8 @@
   display: flex;
   min-height: 100vh;
   background: var(--bg);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   font-family: var(--font);
 }
 

@@ -10,8 +10,8 @@
   --ai-primary: #4F46E5;
   --ai-accent: #6366F1;
   --ai-cyan: #06B6D4;
-  --bg: #FAF9FB;
-  --bg-chat: #F4F6F9;
+  --bg: transparent;
+  --bg-chat: rgba(244, 246, 249, 0.85);
   --text-primary: #1B1C1D;
   --text-secondary: #43474D;
   --text-muted: #6B7280;
@@ -33,6 +33,8 @@
   display: flex;
   min-height: 100vh;
   background: var(--bg);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   font-family: var(--font);
   color: var(--text-primary);
 }

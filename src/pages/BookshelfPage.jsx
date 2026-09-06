@@ -244,7 +244,7 @@ function BookshelfPage() {
   // --- Loading State ---
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-screen bg-transparent">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="w-12 h-12 text-primary animate-spin mx-auto" />
@@ -258,7 +258,7 @@ function BookshelfPage() {
   // --- Error State ---
   if (error) {
     return (
-      <div className="flex min-h-screen bg-background">
+      <div className="flex min-h-screen bg-transparent">
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center p-10">
             <AlertCircle className="w-12 h-12 text-destructive mx-auto" />
@@ -274,7 +274,7 @@ function BookshelfPage() {
   }
 
   return (
-    <div className="flex min-h-screen bg-background font-sans">
+    <div className="flex min-h-screen bg-transparent font-sans">
       <Sidebar activeNav={activeNav} sidebarOpen={sidebarOpen} setSidebarOpen={setSidebarOpen} />
 
       {/* Main Content Area */}

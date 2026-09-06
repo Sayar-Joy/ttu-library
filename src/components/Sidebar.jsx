@@ -96,13 +96,18 @@ function Sidebar({ activeNav, sidebarOpen, setSidebarOpen }) {
         {/* Top section */}
         <div className="px-6 pt-8 pb-4">
           {/* Brand */}
-          <div className="mb-10">
-            <h1 className="text-2xl font-bold text-sidebar-foreground tracking-tight leading-tight">
-              TTU Library
-            </h1>
-            <p className="text-[13px] text-sidebar-foreground/70 mt-1">
-              Cozy Study Space
-            </p>
+          <div className="mb-8 flex items-center gap-3.5">
+            <div className="w-11 h-11 rounded-xl bg-white p-1 flex items-center justify-center shadow-md flex-shrink-0 border border-white/20 overflow-hidden">
+              <img src="/images/logo.jpg" alt="TTU Logo" className="w-full h-full object-contain" />
+            </div>
+            <div className="min-w-0">
+              <h1 className="text-xl font-bold text-sidebar-foreground tracking-tight leading-tight truncate">
+                TTU Library
+              </h1>
+              <p className="text-[12px] text-sidebar-foreground/70 mt-0.5 truncate">
+                Cozy Study Space
+              </p>
+            </div>
           </div>
 
           {/* Navigation */}
