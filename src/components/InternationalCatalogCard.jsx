@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { getBookDdcClass, formatClassNoDual } from '../lib/ddc';
 import './InternationalCatalogCard.css';
 
 /**
@@ -14,6 +15,8 @@ function InternationalCatalogCard({ book }) {
 
   if (!book) return null;
 
+  const ddc = getBookDdcClass(book);
+
   // Normalized properties
   const title = book.title || 'Untitled';
   const author = book.author || 'Unknown Author';
@@ -24,8 +27,8 @@ function InternationalCatalogCard({ book }) {
   const pages = book.total_pages || book.pages || '1 v.';
   const size = book.size || '21 × 14 cm';
   const isbn = book.isbn || 'N/A';
-  const classNo = book.class_no || (book.isThesis ? `THESIS-${book.year || '2026'}` : '000.00');
-  const category = book.category || book.genre || 'General';
+  const classNo = book.class_no ? formatClassNoDual(book.class_no) : (book.isThesis ? `THESIS-${book.year || '2026'}` : `${ddc.code} (${ddc.burmeseCode})`);
+  const category = book.isThesis || book.genre === 'Thesis' ? 'Thesis' : ddc.name;
   const summary = book.review || book.description || `${title} by ${author}. Published in ${year}. Part of the TTU Library collection.`;
   const copies = Array.isArray(book.physical_copies) ? book.physical_copies : [];
   

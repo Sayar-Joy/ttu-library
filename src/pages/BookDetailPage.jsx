@@ -4,27 +4,21 @@ import Sidebar from '../components/Sidebar';
 import MembershipModal from '../components/MembershipModal';
 import ThesisPdfViewer from '../components/ThesisPdfViewer';
 import InternationalCatalogCard from '../components/InternationalCatalogCard';
+import { getBookDdcClass, formatClassNoDual, DDC_COLORS, DDC_TEXT_COLORS } from '../lib/ddc';
 import './BookDetailPage.css';
 
 const API_BASE = '/api';
 
 const genreColors = {
+  ...DDC_COLORS,
   'Thesis': '#D1FAE5',
-  'Fiction': '#B0DDFE', 'Classic': 'rgba(143,111,70,0.9)', 'Science': '#B0DDFE',
-  'Design': '#E8D5C4', 'History': '#C4B5FD', 'Science Fiction': '#FDE68A',
-  'Self-Help': '#A7F3D0', 'Psychology': '#FECDD3', 'Dystopian': '#D1D5DB',
-  'Memoir': '#BAE6FD', 'Business': '#DDD6FE', 'Productivity': '#D9F99D',
-  'Philosophy': '#FED7AA', 'Technology': '#B0DDFE', 'Non-Fiction': '#D1D5DB',
 };
 
 const genreTextColors = {
+  ...DDC_TEXT_COLORS,
   'Thesis': '#047857',
-  'Fiction': '#35627E', 'Classic': '#FFFBFF', 'Science': '#35627E',
-  'Design': '#8B6914', 'History': '#5B21B6', 'Science Fiction': '#92400E',
-  'Self-Help': '#065F46', 'Psychology': '#9B1C1C', 'Dystopian': '#374151',
-  'Memoir': '#0369A1', 'Business': '#5B21B6', 'Productivity': '#4D7C0F',
-  'Philosophy': '#C2410C', 'Technology': '#35627E', 'Non-Fiction': '#374151',
 };
+
 
 function BookDetailPage() {
   const { bookId } = useParams();
@@ -245,27 +239,37 @@ function BookDetailPage() {
         <div className="bookdetail-body">
           {/* Left: Cover + Quick Info */}
           <div className="bookdetail-left">
-            {book.cover_url ? (
-              <div className="bookdetail-cover" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
-                <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                <span className="bookdetail-genre-badge" style={{
-                  background: genreColors[book.genre] || '#B0DDFE',
-                  color: genreTextColors[book.genre] || '#35627E',
-                }}>
-                  {book.genre}
-                </span>
-              </div>
-            ) : (
-              <div className="bookdetail-cover" style={{ background: book.cover || '#485E78', position: 'relative' }}>
-                <BookCoverLarge title={book.title} color={book.cover} />
-                <span className="bookdetail-genre-badge" style={{
-                  background: genreColors[book.genre] || '#B0DDFE',
-                  color: genreTextColors[book.genre] || '#35627E',
-                }}>
-                  {book.genre}
-                </span>
-              </div>
-            )}
+            {(() => {
+              const isThesisBook = book.isThesis || book.genre === 'Thesis' || book.category === 'Thesis';
+              const ddc = getBookDdcClass(book);
+              const badgeLabel = isThesisBook ? 'Thesis' : ddc.name;
+              const badgeBg = isThesisBook ? genreColors['Thesis'] : (genreColors[ddc.name] || '#B0DDFE');
+              const badgeColor = isThesisBook ? genreTextColors['Thesis'] : (genreTextColors[ddc.name] || '#35627E');
+
+              return book.cover_url ? (
+                <div className="bookdetail-cover" style={{ padding: 0, overflow: 'hidden', position: 'relative' }}>
+                  <img src={book.cover_url} alt={book.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <span className="bookdetail-genre-badge" style={{
+                    background: badgeBg,
+                    color: badgeColor,
+                    borderColor: ddc.borderColor
+                  }}>
+                    {badgeLabel}
+                  </span>
+                </div>
+              ) : (
+                <div className="bookdetail-cover" style={{ background: book.cover || '#485E78', position: 'relative' }}>
+                  <BookCoverLarge title={book.title} color={book.cover} />
+                  <span className="bookdetail-genre-badge" style={{
+                    background: badgeBg,
+                    color: badgeColor,
+                    borderColor: ddc.borderColor
+                  }}>
+                    {badgeLabel}
+                  </span>
+                </div>
+              );
+            })()}
 
              <div className="bookdetail-quick-meta">
                {(book.isThesis || book.genre === 'Thesis' || book.category === 'Thesis') ? (
@@ -299,7 +303,11 @@ function BookDetailPage() {
                  <>
                    <div className="meta-item">
                       <span className="meta-label">Call No</span>
-                      <span className="meta-value" style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{book.class_no || 'GEN-001'}</span>
+                      <span className="meta-value" style={{ fontFamily: 'monospace', fontWeight: 700, color: '#0369a1' }}>{formatClassNoDual(book.class_no)}</span>
+                    </div>
+                   <div className="meta-item">
+                      <span className="meta-label">Category</span>
+                      <span className="meta-value" style={{ fontWeight: 600 }}>{getBookDdcClass(book).name}</span>
                     </div>
                     <div className="meta-item">
                       <span className="meta-label">ISBN</span>

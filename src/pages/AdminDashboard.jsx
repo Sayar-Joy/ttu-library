@@ -20,6 +20,7 @@ import {
   Menu,
   Sparkles
 } from 'lucide-react';
+import { DDC_CLASSES, THESIS_CLASS, getBookDdcClass, formatClassNoDual } from '../lib/ddc';
 
 const API = '/api/admin';
 
@@ -1366,7 +1367,7 @@ function CatalogTab({ showToast, refreshTrigger, setShowUnifiedModal }) {
           <div className="admin-panel-actions">
             <div className="admin-search-input">
               <span>🔍</span>
-              <input placeholder="Search by title, author…" value={search} onChange={e => setSearch(e.target.value)} />
+              <input placeholder="Search title, author, class no (e.g. 620 / ၆၂၀)…" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <button className="admin-btn-primary" onClick={() => setShowUnifiedModal(true)}>+ Add Book / Copy</button>
           </div>
@@ -1379,12 +1380,17 @@ function CatalogTab({ showToast, refreshTrigger, setShowUnifiedModal }) {
         ) : (
           <div className="admin-table-wrapper">
             <table className="admin-table">
-              <thead><tr><th>Title</th><th>Author</th><th>Category</th><th>ISBN</th><th>Pages</th><th>Copies</th><th>Available</th></tr></thead>
+              <thead><tr><th>Title</th><th>Author</th><th>Class No.</th><th>Category</th><th>ISBN</th><th>Pages</th><th>Copies</th><th>Available</th></tr></thead>
               <tbody>
                 {books.map(b => (
                   <tr key={b.id}>
                     <td style={{ maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>{b.title}</td>
                     <td>{b.author}</td>
+                    <td>
+                      <span className="admin-badge" style={{ fontFamily: 'monospace', fontSize: 11, background: 'rgba(99,102,241,0.1)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.2)' }}>
+                        {formatClassNoDual(b.class_no)}
+                      </span>
+                    </td>
                     <td><span className="admin-badge borrowed" style={{ fontSize: 10 }}>{b.category || b.genre || '—'}</span></td>
                     <td style={{ fontFamily: 'monospace', fontSize: 12 }}>{b.isbn || '—'}</td>
                     <td>{b.total_pages || '—'}</td>
@@ -3080,8 +3086,21 @@ function UnifiedAddModal({ onClose, onSuccess, showToast }) {
                   <input className="admin-form-input" placeholder="e.g. 978-0-74-327356-5" value={bookForm.isbn} onChange={e => setBookForm({ ...bookForm, isbn: e.target.value })} />
                 </div>
                 <div className="admin-form-group">
-                  <label>Class No.</label>
-                  <input className="admin-form-input" placeholder="e.g. ၈၉၅.၈" value={bookForm.class_no} onChange={e => setBookForm({ ...bookForm, class_no: e.target.value })} />
+                  <label>Class No. (DDC)</label>
+                  <input
+                    className="admin-form-input"
+                    placeholder="e.g. 620 or ၈၉၅.၈"
+                    value={bookForm.class_no}
+                    onChange={e => {
+                      const val = e.target.value;
+                      const detected = getBookDdcClass({ class_no: val });
+                      setBookForm(prev => ({
+                        ...prev,
+                        class_no: val,
+                        category: val.trim() ? detected.name : prev.category
+                      }));
+                    }}
+                  />
                 </div>
               </div>
               <div className="admin-form-row">
@@ -3118,8 +3137,21 @@ function UnifiedAddModal({ onClose, onSuccess, showToast }) {
                 </div>
               </div>
               <div className="admin-form-group">
-                <label>Category</label>
-                <input className="admin-form-input" placeholder="e.g. Fiction / Thriller" value={bookForm.category} onChange={e => setBookForm({ ...bookForm, category: e.target.value })} />
+                <label>Category *</label>
+                <select
+                  className="admin-form-input"
+                  value={bookForm.category}
+                  onChange={e => setBookForm({ ...bookForm, category: e.target.value })}
+                  style={{ background: '#0f172a', color: '#f8fafc' }}
+                >
+                  <option value="">-- Select Category --</option>
+                  {DDC_CLASSES.map(cls => (
+                    <option key={cls.code} value={cls.name}>
+                      {cls.name}
+                    </option>
+                  ))}
+                  <option value={THESIS_CLASS.name}>Thesis</option>
+                </select>
               </div>
               <div className="admin-form-group">
                 <label>Place of Publication</label>

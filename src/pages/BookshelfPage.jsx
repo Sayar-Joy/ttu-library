@@ -7,6 +7,15 @@ import MembershipModal from '../components/MembershipModal';
 import supabase from '../lib/supabase';
 import { cn } from '../lib/utils';
 import { Search, HelpCircle, Bell, ChevronDown, ChevronLeft, ChevronRight, Loader2, AlertCircle, Star, GraduationCap, X, Menu } from 'lucide-react';
+import {
+  DDC_CLASSES,
+  THESIS_CLASS,
+  DDC_COLORS,
+  DDC_TEXT_COLORS,
+  getBookDdcClass,
+  matchBookSearch,
+  formatClassNoDual
+} from '../lib/ddc';
 
 function BookshelfPage() {
   const [activeNav, setActiveNav] = useState('bookshelf');
@@ -17,6 +26,7 @@ function BookshelfPage() {
   const [error, setError] = useState(null);
   const [selectedGenre, setSelectedGenre] = useState(null);
   const [selectedAvailability, setSelectedAvailability] = useState(null);
+  const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState('newest');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
@@ -144,19 +154,30 @@ function BookshelfPage() {
       });
   }, [userId]);
 
-  // Filter and sort
+  // Filter and sort books with bidirectional English/Burmese DDC class support
   const filteredBooks = books
     .filter(book => {
-      if (selectedGenre && book.genre !== selectedGenre) return false;
+      if (selectedGenre) {
+        const ddc = getBookDdcClass(book);
+        const matches =
+          book.genre === selectedGenre ||
+          book.category === selectedGenre ||
+          ddc.name === selectedGenre ||
+          ddc.code === selectedGenre ||
+          ddc.burmeseCode === selectedGenre ||
+          (selectedGenre === THESIS_CLASS.name && (book.isThesis || book.genre === 'Thesis'));
+        if (!matches) return false;
+      }
       if (selectedAvailability === 'available' && book.availableCopies <= 0) return false;
       if (selectedAvailability === 'coming-soon' && book.availableCopies <= 0) return false;
+      if (searchQuery && !matchBookSearch(book, searchQuery)) return false;
       return true;
     })
     .sort((a, b) => {
-      if (sortBy === 'newest') return b.year - a.year;
-      if (sortBy === 'oldest') return a.year - b.year;
-      if (sortBy === 'title') return a.title.localeCompare(b.title);
-      if (sortBy === 'author') return a.author.localeCompare(b.author);
+      if (sortBy === 'newest') return (b.year || 0) - (a.year || 0);
+      if (sortBy === 'oldest') return (a.year || 0) - (b.year || 0);
+      if (sortBy === 'title') return (a.title || '').localeCompare(b.title || '');
+      if (sortBy === 'author') return (a.author || '').localeCompare(b.author || '');
       return 0;
     });
 
@@ -169,14 +190,12 @@ function BookshelfPage() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedGenre, selectedAvailability, sortBy]);
+  }, [selectedGenre, selectedAvailability, sortBy, searchQuery]);
 
-  const genres = [...new Set(books.map(b => b.genre))].sort();
-  const authors = [...new Set(books.map(b => b.author))].sort().slice(0, 8);
+  const authors = [...new Set(books.map(b => b.author).filter(Boolean))].sort().slice(0, 8);
 
-  const categories = ['Thesis', 'Fiction', 'Non-Fiction', 'Classic', 'Technology', 'Science', 'Design',
-    'History', 'Science Fiction', 'Self-Help', 'Psychology', 'Dystopian', 'Memoir',
-    'Business', 'Productivity', 'Philosophy'];
+  // The categories are strictly the 10 DDC Main Classes (+ Thesis)
+  const ddcCategories = DDC_CLASSES;
 
   const sortOptions = [
     { id: 'newest', label: 'Newest First' },
@@ -186,43 +205,6 @@ function BookshelfPage() {
   ];
 
   const currentSortLabel = sortOptions.find(o => o.id === sortBy)?.label || 'Newest First';
-
-  // Generate a color for each genre
-  const genreColors = {
-    'Thesis': '#D1FAE5',
-    'Fiction': '#B0DDFE',
-    'Classic': 'rgba(143, 111, 70, 0.9)',
-    'Science': '#B0DDFE',
-    'Design': '#E8D5C4',
-    'History': '#C4B5FD',
-    'Science Fiction': '#FDE68A',
-    'Self-Help': '#A7F3D0',
-    'Psychology': '#FECDD3',
-    'Dystopian': '#D1D5DB',
-    'Memoir': '#BAE6FD',
-    'Business': '#DDD6FE',
-    'Productivity': '#D9F99D',
-    'Philosophy': '#FED7AA',
-    'Technology': '#B0DDFE',
-  };
-
-  const genreTextColors = {
-    'Thesis': '#047857',
-    'Fiction': '#35627E',
-    'Classic': '#FFFBFF',
-    'Science': '#35627E',
-    'Design': '#8B6914',
-    'History': '#5B21B6',
-    'Science Fiction': '#92400E',
-    'Self-Help': '#065F46',
-    'Psychology': '#9B1C1C',
-    'Dystopian': '#374151',
-    'Memoir': '#0369A1',
-    'Business': '#5B21B6',
-    'Productivity': '#4D7C0F',
-    'Philosophy': '#C2410C',
-    'Technology': '#35627E',
-  };
 
   // Pagination helpers
   const getPageNumbers = () => {
@@ -285,9 +267,25 @@ function BookshelfPage() {
             <button className="lg:hidden p-1 bg-transparent border-none" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Toggle menu">
               {sidebarOpen ? <X className="w-6 h-6 text-foreground" /> : <Menu className="w-6 h-6 text-foreground" />}
             </button>
-            <div className="relative flex-1 max-w-sm">
+            <div className="relative flex-1 max-w-md">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <input type="text" placeholder="Quick Search" className="w-full py-2 pl-10 pr-4 border border-border rounded-full text-sm text-foreground bg-background outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground" />
+              <input
+                type="text"
+                placeholder="Search class no (e.g. 620 / ၆၂၀), title, author..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full py-2 pl-10 pr-9 border border-border rounded-full text-sm text-foreground bg-background outline-none focus:ring-2 focus:ring-ring focus:border-transparent placeholder:text-muted-foreground transition-all"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-muted-foreground hover:text-foreground rounded-full"
+                  title="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -409,35 +407,62 @@ function BookshelfPage() {
 
           {/* ─── Categories Pills ─── */}
           <section>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-              Categories
-            </h3>
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                  Categories
+                </h3>
+              </div>
+              {selectedGenre && (
+                <button
+                  onClick={() => setSelectedGenre(null)}
+                  className="text-xs text-primary font-medium hover:underline flex items-center gap-1"
+                >
+                  <X className="w-3.5 h-3.5" /> Reset Category
+                </button>
+              )}
+            </div>
             <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
               <button
                 className={cn(
                   "px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border",
                   selectedGenre === null
-                    ? "bg-primary text-primary-foreground border-primary shadow-xs"
+                    ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
                     : "bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted/60"
                 )}
                 onClick={() => setSelectedGenre(null)}
               >
                 All Categories
               </button>
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  className={cn(
-                    "px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border",
-                    selectedGenre === cat
-                      ? "bg-primary text-primary-foreground border-primary shadow-xs"
-                      : "bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted/60"
-                  )}
-                  onClick={() => setSelectedGenre(selectedGenre === cat ? null : cat)}
-                >
-                  {cat}
-                </button>
-              ))}
+              {ddcCategories.map(cat => {
+                const isSelected = selectedGenre === cat.name;
+                return (
+                  <button
+                    key={cat.code}
+                    className={cn(
+                      "px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border",
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary shadow-xs font-semibold"
+                        : "bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted/60"
+                    )}
+                    onClick={() => setSelectedGenre(isSelected ? null : cat.name)}
+                  >
+                    {cat.name}
+                  </button>
+                );
+              })}
+              <button
+                key={THESIS_CLASS.code}
+                className={cn(
+                  "px-3.5 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-all border",
+                  selectedGenre === THESIS_CLASS.name
+                    ? "bg-emerald-600 text-white border-emerald-600 shadow-xs font-semibold"
+                    : "bg-card text-muted-foreground border-border hover:text-foreground hover:bg-muted/60"
+                )}
+                onClick={() => setSelectedGenre(selectedGenre === THESIS_CLASS.name ? null : THESIS_CLASS.name)}
+              >
+                Thesis
+              </button>
             </div>
           </section>
 
@@ -492,6 +517,7 @@ function BookshelfPage() {
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4 sm:gap-5">
                 {paginatedBooks.map(book => {
                   const isThesisBook = book.isThesis || book.genre === 'Thesis' || book.category === 'Thesis';
+                  const ddcClass = getBookDdcClass(book);
                   return (
                     <Link
                       to={`/book/${book.id}`}
@@ -514,14 +540,22 @@ function BookshelfPage() {
                           <BookCoverSVG title={book.title} color={book.cover} />
                         )}
 
-                        {/* Genre Badge */}
-                        <span className={cn(
-                          "absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-semibold border backdrop-blur-xs",
-                          isThesisBook 
-                            ? "bg-emerald-50/90 text-emerald-700 border-emerald-200" 
-                            : "bg-background/90 text-foreground/80 border-border"
-                        )}>
-                          {isThesisBook ? '🎓 Thesis' : book.genre}
+                        {/* DDC Genre Badge */}
+                        <span
+                          className={cn(
+                            "absolute top-2 left-2 px-2 py-0.5 rounded-md text-[10px] font-semibold border backdrop-blur-xs max-w-[85%] truncate",
+                            isThesisBook 
+                              ? "bg-emerald-50/95 text-emerald-700 border-emerald-200" 
+                              : "border-border shadow-2xs"
+                          )}
+                          style={!isThesisBook ? {
+                            backgroundColor: `${ddcClass.color}F2`,
+                            color: ddcClass.textColor,
+                            borderColor: ddcClass.borderColor
+                          } : undefined}
+                          title={isThesisBook ? 'Thesis' : ddcClass.name}
+                        >
+                          {isThesisBook ? 'Thesis' : ddcClass.name}
                         </span>
 
                         {isThesisBook && (
@@ -541,7 +575,7 @@ function BookshelfPage() {
                           </p>
                         </div>
 
-                        {isThesisBook && (
+                        {isThesisBook ? (
                           <div className="flex items-center gap-1.5 flex-wrap mt-2 pt-2 border-t border-border/60">
                             {book.major && (
                               <span className="text-[9px] font-medium bg-sky-50 text-sky-700 border border-sky-200/60 px-1.5 py-0.5 rounded">
@@ -559,6 +593,15 @@ function BookshelfPage() {
                               </span>
                             )}
                           </div>
+                        ) : (
+                          book.class_no && (
+                            <div className="flex items-center justify-between mt-2 pt-1.5 border-t border-border/50 text-[10px]">
+                              <span className="text-muted-foreground font-medium text-[10px]">Class:</span>
+                              <span className="font-mono font-semibold text-foreground px-1.5 py-0.2 rounded bg-muted border border-border">
+                                {formatClassNoDual(book.class_no)}
+                              </span>
+                            </div>
+                          )
                         )}
                       </div>
                     </Link>

@@ -14,6 +14,7 @@ import adminRoutes from './routes/adminRoutes.js';
 import uploadRoutes from './routes/uploadRoutes.js';
 import thesisRoutes from './routes/thesisRoutes.js';
 import * as thesisService from './services/thesisService.js';
+import { matchBookSearch, getBookDdcClass, toEnglishDigits, toBurmeseDigits, DDC_CLASSES } from './lib/ddc.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -361,8 +362,8 @@ app.use('/api/theses', thesisRoutes);
 
 app.get('/api/books', async (req, res) => {
   try {
-    const { search, genre, category } = req.query;
-    const books = await bookService.getAllBooks({ search });
+    const { search, genre, category, class_no } = req.query;
+    const books = await bookService.getAllBooks({ search, class_no });
     
     // Also fetch theses and format them as book objects
     const { theses } = await thesisService.getAllTheses({ search });
@@ -372,6 +373,10 @@ app.get('/api/books', async (req, res) => {
       author: t.author,
       genre: 'Thesis',
       category: 'Thesis',
+      ddc_code: 'THESIS',
+      ddc_burmese_code: 'ကျမ်း',
+      ddc_name: 'Thesis',
+      ddc_burmese_name: 'ဘွဲ့ယူကျမ်း',
       year: t.year,
       publication_year: t.year,
       cover: t.cover_url || '#1e3a5f',
@@ -396,12 +401,39 @@ app.get('/api/books', async (req, res) => {
 
     let combined = [...books, ...formattedTheses];
 
-    // Filter by genre or category if requested
-    if (genre) {
-      combined = combined.filter(b => (b.genre && b.genre.toLowerCase() === genre.toLowerCase()) || (b.category && b.category.toLowerCase() === genre.toLowerCase()));
+    // Filter by class_no directly if provided (supports Burmese or English)
+    if (class_no) {
+      const enClass = toEnglishDigits(class_no).trim().toLowerCase();
+      const myClass = toBurmeseDigits(class_no).trim();
+      combined = combined.filter(b => {
+        const bEn = toEnglishDigits(b.class_no || '').toLowerCase();
+        const bMy = toBurmeseDigits(b.class_no || '');
+        return bEn.includes(enClass) || bMy.includes(myClass);
+      });
     }
-    if (category) {
-      combined = combined.filter(b => (b.category && b.category.toLowerCase() === category.toLowerCase()) || (b.genre && b.genre.toLowerCase() === category.toLowerCase()));
+
+    // Filter by genre or category if requested (supports DDC codes and bilingual names)
+    const targetCat = category || genre;
+    if (targetCat) {
+      const tcTrim = targetCat.trim();
+      const tcEn = toEnglishDigits(tcTrim).toLowerCase();
+      combined = combined.filter(b => {
+        const ddc = getBookDdcClass(b);
+        return (
+          (b.category && b.category.toLowerCase() === targetCat.toLowerCase()) ||
+          (b.genre && b.genre.toLowerCase() === targetCat.toLowerCase()) ||
+          ddc.code === tcEn ||
+          ddc.burmeseCode === tcTrim ||
+          ddc.name.toLowerCase() === targetCat.toLowerCase() ||
+          ddc.shortName.toLowerCase() === targetCat.toLowerCase() ||
+          ddc.burmeseName === tcTrim
+        );
+      });
+    }
+
+    // If search term was provided, also filter with matchBookSearch for exact English/Burmese match
+    if (search) {
+      combined = combined.filter(b => matchBookSearch(b, search));
     }
 
     res.json({ success: true, count: combined.length, books: combined });

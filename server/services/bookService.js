@@ -1,4 +1,5 @@
 import supabase from '../supabase.js';
+import { getBookDdcClass, toEnglishDigits, toBurmeseDigits, DDC_CLASSES } from '../lib/ddc.js';
 
 /**
  * Book & Physical Copy Service
@@ -21,11 +22,33 @@ export async function getAllBooks(filters = {}) {
     `);
   
   if (filters.search) {
-    query = query.or(
-      `title.ilike.%${filters.search}%,` +
-      `author.ilike.%${filters.search}%,` +
-      `publisher.ilike.%${filters.search}%`
-    );
+    const rawSearch = filters.search.trim();
+    const enSearch = toEnglishDigits(rawSearch);
+    const mySearch = toBurmeseDigits(rawSearch);
+
+    // Support searching by title, author, publisher, and class_no in both English and Burmese digits
+    const orClauses = [
+      `title.ilike.%${rawSearch}%`,
+      `author.ilike.%${rawSearch}%`,
+      `publisher.ilike.%${rawSearch}%`,
+      `class_no.ilike.%${enSearch}%`,
+      `class_no.ilike.%${mySearch}%`
+    ];
+
+    // If query matches a DDC class code (e.g. 600 or ၆၀၀)
+    const isClassMatch = DDC_CLASSES.find(c => c.code === enSearch || c.burmeseCode === rawSearch);
+    if (isClassMatch) {
+      orClauses.push(`class_no.ilike.${isClassMatch.digit}%`);
+      orClauses.push(`class_no.ilike.${isClassMatch.burmeseDigit}%`);
+    }
+
+    query = query.or(orClauses.join(','));
+  }
+
+  if (filters.class_no) {
+    const enClass = toEnglishDigits(filters.class_no).trim();
+    const myClass = toBurmeseDigits(filters.class_no).trim();
+    query = query.or(`class_no.ilike.%${enClass}%,class_no.ilike.%${myClass}%`);
   }
   
   query = query.order('created_at', { ascending: false });
@@ -33,17 +56,25 @@ export async function getAllBooks(filters = {}) {
   const { data, error } = await query;
   if (error) throw error;
   
-  // Enrich books with availability data (camelCase for JavaScript)
-  // `category` is now stored directly in the DB instead of derived from class_no
-  return data.map(book => ({
-    ...book,
-    genre: book.category || 'Uncategorized',
-    cover: book.cover_url,
-    year: book.publication_year,
-    totalCopies: book.physical_copies.length,
-    availableCopies: book.physical_copies.filter(c => c.status === 'available').length,
-    borrowedCopies: book.physical_copies.filter(c => c.status === 'borrowed').length
-  }));
+  // Enrich books with availability data and standard DDC category
+  return data.map(book => {
+    const ddc = getBookDdcClass(book);
+    const categoryName = ddc.name;
+    return {
+      ...book,
+      category: categoryName,
+      genre: categoryName,
+      ddc_code: ddc.code,
+      ddc_burmese_code: ddc.burmeseCode,
+      ddc_name: ddc.name,
+      ddc_burmese_name: ddc.burmeseName,
+      cover: book.cover_url,
+      year: book.publication_year,
+      totalCopies: book.physical_copies.length,
+      availableCopies: book.physical_copies.filter(c => c.status === 'available').length,
+      borrowedCopies: book.physical_copies.filter(c => c.status === 'borrowed').length
+    };
+  });
 }
 
 export async function getBookById(bookId) {
@@ -65,9 +96,15 @@ export async function getBookById(bookId) {
   
   if (error) throw error;
   
-  // Add availability counts (camelCase for JavaScript)
+  const ddc = getBookDdcClass(data);
   return {
     ...data,
+    category: ddc.name,
+    genre: ddc.name,
+    ddc_code: ddc.code,
+    ddc_burmese_code: ddc.burmeseCode,
+    ddc_name: ddc.name,
+    ddc_burmese_name: ddc.burmeseName,
     totalCopies: data.physical_copies.length,
     availableCopies: data.physical_copies.filter(c => c.status === 'available').length,
     borrowedCopies: data.physical_copies.filter(c => c.status === 'borrowed').length
@@ -75,6 +112,9 @@ export async function getBookById(bookId) {
 }
 
 export async function createBook(bookData) {
+  const ddc = getBookDdcClass(bookData);
+  const finalCategory = bookData.category || ddc.name;
+
   const { data, error } = await supabase
     .from('books')
     .insert([{
@@ -86,7 +126,7 @@ export async function createBook(bookData) {
       class_no: bookData.class_no,
       isbn: bookData.isbn,
       cover_url: bookData.cover_url,
-      category: bookData.category,
+      category: finalCategory,
       review: bookData.review,
       total_pages: bookData.total_pages,
       size: bookData.size,
