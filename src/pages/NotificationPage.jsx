@@ -180,7 +180,7 @@ function NotificationPage() {
     { id: 'bookshelf', label: 'Bookshelf', icon: BookshelfIcon },
     { id: 'mybooks', label: 'My Books', icon: BooksIcon },
     { id: 'notifications', label: 'Notifications', icon: BellIcon },
-    { id: 'ai', label: 'OrionPax AI', icon: AIIcon },
+    { id: 'ai', label: 'AI Librarian', icon: AIIcon },
     { id: 'profile', label: 'Profile', icon: ProfileIcon },
     { id: 'loan', label: 'Loan', icon: LoanIcon },
   ];

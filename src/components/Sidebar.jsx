@@ -63,7 +63,7 @@ function Sidebar({ activeNav, sidebarOpen, setSidebarOpen }) {
     { id: 'bookshelf', label: 'Bookshelf', icon: LayoutGrid },
     { id: 'mybooks', label: 'My Books', icon: BookOpen },
     { id: 'notifications', label: 'Notifications', icon: Bell },
-    { id: 'ai', label: 'OrionPax AI', icon: Sparkles },
+    { id: 'ai', label: 'AI Librarian', icon: Sparkles },
     { id: 'profile', label: 'Profile', icon: User },
     { id: 'friends', label: 'Friends', icon: Users },
     ...(isLibrarian ? [{ id: 'admin', label: 'Admin Dashboard', icon: ShieldCheck, highlight: true }] : []),

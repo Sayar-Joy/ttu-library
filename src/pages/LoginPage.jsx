@@ -154,15 +154,15 @@ function LoginPage() {
           {/* Card */}
           <div className="bg-white/95 backdrop-blur-md border border-border/80 rounded-2xl p-8 sm:p-10 shadow-2xl">
             {/* Header */}
-            <div className="text-center mb-7">
-              <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-white shadow-md border border-border/80 flex items-center justify-center p-2 overflow-hidden">
+            <div className="text-center mb-8">
+              <div className="w-16 h-16 mx-auto mb-5 rounded-2xl bg-white shadow-md border border-border/80 flex items-center justify-center p-2 overflow-hidden">
                 <img src="/images/logo.jpg" alt="TTU Logo" className="w-full h-full object-contain" />
               </div>
-              <h2 className="text-[22px] font-bold text-foreground tracking-tight mb-2">
-                Student & Staff Portal
+              <h2 className="text-[26px] font-bold text-foreground tracking-tight mb-2">
+                Welcome from TTU Library
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Sign in with your Google account to access your bookshelf and library services.
+                Login and browse the whole library
               </p>
             </div>
 
@@ -213,19 +213,9 @@ function LoginPage() {
               </button>
 
               <div className="flex items-center justify-center gap-1.5 text-xs text-muted-foreground text-center">
-                <Shield className="w-3 h-3" />
-                <span>Secure OAuth 2.0 single sign-on powered by Supabase Auth</span>
+                <Shield className="w-3.5 h-3.5 opacity-70" />
+                <span>Secure Google authentication</span>
               </div>
-            </div>
-
-            {/* First-time info card */}
-            <div className="mt-6 p-4 rounded-lg bg-primary/5 border border-primary/10">
-              <div className="text-[11px] font-bold uppercase tracking-wider text-primary mb-1.5">
-                First Time Signing In?
-              </div>
-              <p className="text-[13px] text-muted-foreground leading-snug">
-                Your account will be created automatically. To borrow books, you'll simply fill out a quick membership verification form for the librarian to approve.
-              </p>
             </div>
           </div>
 

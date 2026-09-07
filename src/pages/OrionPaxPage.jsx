@@ -295,11 +295,11 @@ function OrionPaxPage() {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: Failed to get response from OrionPax AI`);
+        throw new Error(`HTTP ${response.status}: Failed to get response from AI Librarian`);
       }
 
       const data = await response.json();
-      console.log('🤖 OrionPax AI Response:', data);
+      console.log('🤖 AI Librarian Response:', data);
 
       const aiText = data.response || (typeof data === 'string' ? data : 'No response text received.');
       
@@ -315,8 +315,8 @@ function OrionPaxPage() {
 
       setMessages((prev) => [...prev, newAiMessage]);
     } catch (err) {
-      console.error('OrionPax AI Error:', err);
-      setErrorStatus(err.message || 'Failed to connect to OrionPax AI');
+      console.error('AI Librarian Error:', err);
+      setErrorStatus(err.message || 'Failed to connect to AI Librarian');
 
       const errorMessage = {
         id: `ai-error-${Date.now()}`,
@@ -450,7 +450,7 @@ function OrionPaxPage() {
               </div>
               <div className="orionpax-title-wrapper">
                 <h1 className="orionpax-title">
-                  OrionPax <span className="ai-badge">AI</span>
+                  AI Librarian <span className="ai-badge">AI</span>
                 </h1>
                 <span className="orionpax-status">
                   <span className="status-indicator-dot" /> Autonomous Library Intelligence
@@ -527,7 +527,7 @@ function OrionPaxPage() {
                 </div>
 
                 <h2 className="hero-title">
-                  Welcome to <span className="hero-highlight">OrionPax AI</span>
+                  Welcome to <span className="hero-highlight">AI Librarian</span>
                 </h2>
                 <p className="hero-subtitle">
                   Your dedicated intelligent assistant for TTU Library. Query our complete book catalog, inspect copy availability, request tailored reading lists, and get instant answers on library rules.
@@ -566,7 +566,7 @@ function OrionPaxPage() {
                     <div className={`message-bubble ${msg.sender === 'user' ? 'user-bubble' : 'ai-bubble'} ${msg.isError ? 'error-bubble' : ''}`}>
                       <div className="bubble-header">
                         <span className="sender-name">
-                          {msg.sender === 'user' ? (user?.name || 'You') : 'OrionPax AI'}
+                          {msg.sender === 'user' ? (user?.name || 'You') : 'AI Librarian'}
                         </span>
                         <span className="message-time">
                           {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
@@ -683,7 +683,7 @@ function OrionPaxPage() {
                           <span className="dot dot-2" />
                           <span className="dot dot-3" />
                         </div>
-                        <span className="thinking-text">OrionPax is querying library database...</span>
+                        <span className="thinking-text">AI Librarian is querying library database...</span>
                       </div>
                     </div>
                   </div>
@@ -725,7 +725,7 @@ function OrionPaxPage() {
                   value={inputMessage}
                   onChange={(e) => setInputMessage(e.target.value)}
                   onKeyDown={handleKeyDown}
-                  placeholder={isListening ? 'Listening to your voice...' : 'Ask OrionPax about books, authors, availability, recommendations...'}
+                  placeholder={isListening ? 'Listening to your voice...' : 'Ask AI Librarian about books, authors, availability, recommendations...'}
                   className="chat-textarea"
                   rows={1}
                   disabled={isLoading}
