@@ -221,16 +221,16 @@ function BookDetailPage() {
                 )}
               </svg>
             </button>
-            <Link to="/bookshelf" className="back-link">
+            <Link to={book?.isThesis || book?.genre === 'Thesis' || book?.category === 'Thesis' ? "/bookshelf?tab=theses" : "/bookshelf"} className="back-link">
               <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                 <path d="M12 4L6 10L12 16" stroke="#43474D" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
               </svg>
-              Back to Bookshelf
+              {book?.isThesis || book?.genre === 'Thesis' || book?.category === 'Thesis' ? 'Back to Theses' : 'Back to Bookshelf'}
             </Link>
           </div>
           <div className="header-right">
             <div className="header-avatar">
-              <div className="avatar-circle">AS</div>
+              <div className="avatar-circle">TT</div>
             </div>
           </div>
         </header>

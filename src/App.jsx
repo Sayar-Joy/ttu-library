@@ -19,6 +19,8 @@ function App() {
         <Route path="/" element={<LoginPage />} />
         <Route path="/admin" element={<AdminDashboard />} />
         <Route path="/bookshelf" element={<BookshelfPage />} />
+        <Route path="/theses" element={<BookshelfPage defaultTab="theses" />} />
+        <Route path="/theses/:major" element={<BookshelfPage defaultTab="theses" />} />
         <Route path="/profile/:userId" element={<ProfilePage />} />
         <Route path="/mybooks/:userId" element={<MyBooksPage />} />
         <Route path="/notifications/:userId" element={<NotificationPage />} />

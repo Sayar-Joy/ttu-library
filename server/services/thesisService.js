@@ -62,6 +62,38 @@ async function checkSupabaseTable() {
   return isSupabaseThesesAvailable;
 }
 
+// Helper for bidirectional major matching (supports codes and full titles)
+function matchMajor(thesisMajor, filterMajor) {
+  if (!filterMajor || filterMajor === 'all') return true;
+  if (!thesisMajor) return false;
+  const tm = String(thesisMajor).trim().toLowerCase();
+  const fm = String(filterMajor).trim().toLowerCase();
+
+  if (tm === fm) return true;
+
+  const aliases = {
+    'ceit': ['ceit', 'information technology', 'computer engineering & it', 'computer engineering & information technology'],
+    'mc': ['mc', 'mechatronics', 'mechatronics engineering', 'mechatronic engineering'],
+    'mech': ['mech', 'mechanical', 'mechanical engineering'],
+    'archi': ['archi', 'arch', 'architecture'],
+    'civil': ['civil', 'civil engineering'],
+    'pe': ['pe', 'petroleum', 'petroleum engineering'],
+    'che': ['che', 'chem', 'chemical', 'chemical engineering'],
+    'ec': ['ec', 'electronic', 'electronic engineering', 'electronic communication'],
+    'ep': ['ep', 'electrical power', 'electrical power engineering', 'power'],
+  };
+
+  for (const [code, list] of Object.entries(aliases)) {
+    if (fm === code || list.includes(fm)) {
+      if (tm === code || list.includes(tm) || list.some(alias => tm.includes(alias))) {
+        return true;
+      }
+    }
+  }
+
+  return tm.includes(fm) || fm.includes(tm);
+}
+
 /**
  * Get all theses with optional filtering by major, year, search text, and pagination.
  */
@@ -72,7 +104,23 @@ export async function getAllTheses(filters = {}) {
     let query = supabase.from('theses').select('*', { count: 'exact' });
 
     if (filters.major && filters.major !== 'all') {
-      query = query.eq('major', filters.major);
+      const norm = String(filters.major).trim();
+      const lower = norm.toLowerCase();
+      const majorAliases = {
+        'ceit': ['CEIT', 'Information Technology', 'Computer Engineering'],
+        'mc': ['MC', 'Mechatronics', 'Mechatronic'],
+        'mech': ['Mech', 'Mechanical'],
+        'archi': ['Archi', 'Arch', 'Architecture'],
+        'civil': ['Civil'],
+        'pe': ['PE', 'Petroleum'],
+        'che': ['Che', 'Chem', 'Chemical'],
+        'ec': ['EC', 'Electronic'],
+        'ep': ['EP', 'Electrical Power'],
+      };
+
+      const matchedList = majorAliases[lower] || [norm];
+      const orClauses = matchedList.map(a => `major.ilike.%${a}%`).join(',');
+      query = query.or(orClauses);
     }
 
     if (filters.year && filters.year !== 'all') {
@@ -114,7 +162,7 @@ function getLocalFiltered(filters = {}) {
   let list = readLocalTheses();
 
   if (filters.major && filters.major !== 'all') {
-    list = list.filter(t => t.major === filters.major);
+    list = list.filter(t => matchMajor(t.major, filters.major));
   }
 
   if (filters.year && filters.year !== 'all') {

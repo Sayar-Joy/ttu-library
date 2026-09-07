@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   LayoutGrid,
+  GraduationCap,
   BookOpen,
   Bell,
   Sparkles,
@@ -38,6 +39,10 @@ function Sidebar({ activeNav, sidebarOpen, setSidebarOpen }) {
       navigate('/bookshelf');
       return;
     }
+    if (id === 'theses') {
+      navigate('/bookshelf?tab=theses');
+      return;
+    }
     if (id === 'profile' || id === 'mybooks' || id === 'notifications' || id === 'friends' || id === 'ai') {
       const stored = sessionStorage.getItem('ttu_user');
       if (stored) {
@@ -61,6 +66,7 @@ function Sidebar({ activeNav, sidebarOpen, setSidebarOpen }) {
 
   const navItems = [
     { id: 'bookshelf', label: 'Bookshelf', icon: LayoutGrid },
+    { id: 'theses', label: 'Theses', icon: GraduationCap },
     { id: 'mybooks', label: 'My Books', icon: BookOpen },
     { id: 'notifications', label: 'Notifications', icon: Bell },
     { id: 'ai', label: 'AI Librarian', icon: Sparkles },

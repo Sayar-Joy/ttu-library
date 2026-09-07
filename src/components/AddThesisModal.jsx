@@ -1,18 +1,7 @@
 import React, { useState, useRef } from 'react';
 import ThesisPdfViewer from './ThesisPdfViewer';
+import { TTU_MAJORS } from '../lib/majors';
 import './AddThesisModal.css';
-
-const TTU_MAJORS = [
-  'Information Technology',
-  'Electronic Communication',
-  'Electrical Power',
-  'Civil Engineering',
-  'Mechanical Engineering',
-  'Mechatronics Engineering',
-  'Architecture',
-  'Chemical Engineering',
-  'Other',
-];
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS_LIST = Array.from({ length: 15 }, (_, i) => CURRENT_YEAR - i);
@@ -22,7 +11,7 @@ export default function AddThesisModal({ onClose, onSuccess, showToast }) {
     title: '',
     author: '',
     student_roll: '',
-    major: 'Information Technology',
+    major: 'CEIT',
     custom_major: '',
     year: CURRENT_YEAR,
     supervisor: '',
@@ -289,8 +278,9 @@ export default function AddThesisModal({ onClose, onSuccess, showToast }) {
                     onChange={e => setFormData({ ...formData, major: e.target.value })}
                   >
                     {TTU_MAJORS.map(m => (
-                      <option key={m} value={m}>{m}</option>
+                      <option key={m.code} value={m.code}>{m.code} — {m.name}</option>
                     ))}
+                    <option value="Other">Other (Custom Department)</option>
                   </select>
                 </div>
 

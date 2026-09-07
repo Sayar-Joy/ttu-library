@@ -1454,15 +1454,16 @@ function ThesesTab({ showToast, refreshTrigger, setShowAddThesisModal, setPrevie
   };
 
   const majors = [
-    'all',
-    'Information Technology',
-    'Electronic Communication',
-    'Electrical Power',
-    'Civil Engineering',
-    'Mechanical Engineering',
-    'Mechatronics Engineering',
-    'Architecture',
-    'Chemical Engineering',
+    { code: 'all', label: 'All Majors (9 Departments)' },
+    { code: 'CEIT', label: 'CEIT — Computer Engineering & IT' },
+    { code: 'MC', label: 'MC — Mechatronics Engineering' },
+    { code: 'Mech', label: 'Mech — Mechanical Engineering' },
+    { code: 'Archi', label: 'Archi — Architecture' },
+    { code: 'Civil', label: 'Civil — Civil Engineering' },
+    { code: 'PE', label: 'PE — Petroleum Engineering' },
+    { code: 'Che', label: 'Che — Chemical Engineering' },
+    { code: 'EC', label: 'EC — Electronic Engineering' },
+    { code: 'EP', label: 'EP — Electrical Power' },
   ];
 
   const currentYear = new Date().getFullYear();
@@ -1499,9 +1500,8 @@ function ThesesTab({ showToast, refreshTrigger, setShowAddThesisModal, setPrevie
               onChange={e => setSelectedMajor(e.target.value)}
               style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid #cbd5e1', fontSize: 13, background: '#f8fafc', color: '#1e293b' }}
             >
-              <option value="all">All Majors / Departments</option>
-              {majors.filter(m => m !== 'all').map(m => (
-                <option key={m} value={m}>{m}</option>
+              {majors.map(m => (
+                <option key={m.code} value={m.code}>{m.label}</option>
               ))}
             </select>
 
